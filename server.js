@@ -31,28 +31,34 @@ client.on("ready", () => {
 
 // Listen to voice state updates
 client.on("voiceStateUpdate", (oldState, newState) => {
-  const user = newState.member.user.username;
+  const member = newState.member || oldState.member;
+  if (!member) return;
+
+  // Use server nickname if available, otherwise fallback to username
+  const displayName = member.nickname || member.user.username;
+
   const oldChannel = oldState.channel;
   const newChannel = newState.channel;
   const now = Date.now();
 
   // User left VC
   if (oldChannel && !newChannel) {
-    delete attendance.active[user];
-    attendance.history.unshift({ user, channel: oldChannel.name, type: "left", time: now });
-    console.log(`📡 ${user} left VC`);
+    delete attendance.active[displayName];
+    attendance.history.unshift({ user: displayName, channel: oldChannel.name, type: "left", time: now });
+    console.log(`📡 ${displayName} left VC`);
   }
 
   // User joined VC
   if (!oldChannel && newChannel) {
-    attendance.active[user] = { channel: newChannel.name, joinedAt: now };
-    attendance.history.unshift({ user, channel: newChannel.name, type: "join", time: now });
-    console.log(`📡 ${user} joined VC`);
+    attendance.active[displayName] = { channel: newChannel.name, joinedAt: now };
+    attendance.history.unshift({ user: displayName, channel: newChannel.name, type: "join", time: now });
+    console.log(`📡 ${displayName} joined VC`);
   }
 
   // Broadcast to frontend
   io.emit("update", attendance);
 });
+
 
 // Socket.IO connection
 io.on("connection", (socket) => {
