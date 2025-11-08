@@ -77,9 +77,12 @@ function updateActive() {
     const joined = new Date(info.joinedAt || Date.now());
     const durationSec = Math.floor((now - joined)/1000);
     const durationText = formatDuration(durationSec);
+
+    // Correct mute/deaf detection
     const muteIcon = info.selfMute || info.serverMute ? "🔇" : "🎤";
     const deafIcon = info.selfDeaf || info.serverDeaf ? "🔕" : "👂";
     const statusText = `<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${user}</td><td>${info.channel || "Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
     activeBody.appendChild(tr);
