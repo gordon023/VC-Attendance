@@ -4,14 +4,13 @@ import { Server } from "socket.io";
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 
-dotenv.config(); // for DISCORD_TOKEN
+dotenv.config(); // load DISCORD_TOKEN from .env
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// Serve frontend
-app.use(express.static("public"));
+app.use(express.static("public")); // serve frontend
 
 // Attendance storage
 let attendance = { active: {}, history: [] };
@@ -28,48 +27,57 @@ const client = new Client({
 client.on("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
-  // Populate currently active VC members at startup
-  for (const guild of client.guilds.cache.values()) {
-    await guild.members.fetch(); // ensure all members cached
-    for (const channel of guild.channels.cache.values()) {
-      if (channel.isVoiceBased()) {
-        for (const member of channel.members.values()) {
-          const nickname = member.nickname;
-          if (!nickname) continue; // skip if no server nickname
-          attendance.active[nickname] = { channel: channel.name, joinedAt: Date.now() };
-        }
-      }
-    }
-  }
+  // Populate active VC members already in channels
+  client.guilds.cache.forEach((guild) => {
+    guild.channels.cache
+      .filter((ch) => ch.isVoiceBased())
+      .forEach((vc) => {
+        vc.members.forEach((member) => {
+          if (member.user.bot) return;
+          attendance.active[member.displayName] = {
+            channel: vc.name,
+            joinedAt: Date.now(),
+          };
+        });
+      });
+  });
 
-  // Broadcast initial state to frontend
+  // Send initial data to frontend
   io.emit("update", attendance);
 });
 
-// Listen to voice state updates
+// Track join/leave/move events
 client.on("voiceStateUpdate", (oldState, newState) => {
   const member = newState.member || oldState.member;
-  const nickname = member.nickname;
-  if (!nickname) return; // skip if no nickname
+  if (!member || member.user.bot) return;
+
+  const nickname = member.displayName;
   const oldChannel = oldState.channel;
   const newChannel = newState.channel;
   const now = Date.now();
 
-  // User left VC
+  // Left VC
   if (oldChannel && !newChannel) {
     delete attendance.active[nickname];
     attendance.history.unshift({ user: nickname, channel: oldChannel.name, type: "left", time: now });
     console.log(`📡 ${nickname} left VC`);
   }
 
-  // User joined VC
+  // Joined VC
   if (!oldChannel && newChannel) {
     attendance.active[nickname] = { channel: newChannel.name, joinedAt: now };
     attendance.history.unshift({ user: nickname, channel: newChannel.name, type: "join", time: now });
     console.log(`📡 ${nickname} joined VC`);
   }
 
-  // Broadcast update to frontend
+  // Moved channels
+  if (oldChannel && newChannel && oldChannel.id !== newChannel.id) {
+    attendance.active[nickname] = { channel: newChannel.name, joinedAt: now };
+    attendance.history.unshift({ user: nickname, channel: newChannel.name, type: "joined", time: now });
+    attendance.history.unshift({ user: nickname, channel: oldChannel.name, type: "left", time: now });
+    console.log(`📡 ${nickname} moved from ${oldChannel.name} to ${newChannel.name}`);
+  }
+
   io.emit("update", attendance);
 });
 
@@ -81,9 +89,7 @@ io.on("connection", (socket) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 
-// Login to Discord
+// Login Discord bot
 client.login(process.env.BOT_TOKEN);
