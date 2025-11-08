@@ -27,9 +27,19 @@ const dataFile = path.join(__dirname, "data", "attendance.json");
 fs.ensureFileSync(dataFile);
 
 let attendance = { history: [], active: {}, stats: {} };
+// Load data if exists
 if (fs.existsSync(dataFile)) {
-  attendance = JSON.parse(fs.readFileSync(dataFile));
+  try {
+    const content = fs.readFileSync(dataFile, "utf8");
+    attendance = content ? JSON.parse(content) : { history: [], active: {}, stats: {} };
+  } catch (err) {
+    console.error("⚠️ Error reading attendance.json, resetting:", err.message);
+    attendance = { history: [], active: {}, stats: {} };
+  }
+} else {
+  attendance = { history: [], active: {}, stats: {} };
 }
+
 function saveData() {
   fs.writeFileSync(dataFile, JSON.stringify(attendance, null, 2));
 }
