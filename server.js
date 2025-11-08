@@ -38,6 +38,10 @@ client.on("ready", async () => {
           attendance.active[member.displayName] = {
             channel: vc.name,
             joinedAt: Date.now(),
+            selfMute: member.voice.selfMute,
+            selfDeaf: member.voice.selfDeaf,
+            serverMute: member.voice.serverMute,
+            serverDeaf: member.voice.serverDeaf,
           };
         });
       });
@@ -53,6 +57,7 @@ client.on("voiceStateUpdate", (oldState, newState) => {
   const newChannel = newState.channel;
   const now = Date.now();
 
+  // Left VC
   if (oldChannel && !newChannel) {
     delete attendance.active[memberName];
     attendance.history.unshift({
@@ -64,8 +69,16 @@ client.on("voiceStateUpdate", (oldState, newState) => {
     console.log(`📡 ${memberName} left VC`);
   }
 
+  // Joined VC
   if (!oldChannel && newChannel) {
-    attendance.active[memberName] = { channel: newChannel.name, joinedAt: now };
+    attendance.active[memberName] = {
+      channel: newChannel.name,
+      joinedAt: now,
+      selfMute: newState.selfMute,
+      selfDeaf: newState.selfDeaf,
+      serverMute: newState.serverMute,
+      serverDeaf: newState.serverDeaf,
+    };
     attendance.history.unshift({
       user: memberName,
       channel: newChannel.name,
@@ -73,6 +86,18 @@ client.on("voiceStateUpdate", (oldState, newState) => {
       time: now,
     });
     console.log(`📡 ${memberName} joined VC`);
+  }
+
+  // Still in VC but changed mute/deaf status
+  if (oldChannel && newChannel) {
+    attendance.active[memberName] = {
+      ...attendance.active[memberName],
+      selfMute: newState.selfMute,
+      selfDeaf: newState.selfDeaf,
+      serverMute: newState.serverMute,
+      serverDeaf: newState.serverDeaf,
+      joinedAt: attendance.active[memberName]?.joinedAt || now,
+    };
   }
 
   io.emit("update", attendance);
@@ -110,7 +135,6 @@ app.post("/upload-images", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
 
 // ====== START SERVER ======
 const PORT = process.env.PORT || 3000;
