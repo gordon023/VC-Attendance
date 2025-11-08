@@ -61,6 +61,7 @@ app.post("/voice-event", (req, res) => {
   if (type === "join") {
     attendance.active[user] = { channel, joinedAt: timestamp };
     attendance.history.unshift({ type, user, channel, time: timestamp });
+    if (attendance.history.length > 100) attendance.history.pop(); // limit history size
   } else if (type === "leave") {
     if (attendance.active[user]) {
       const joinedAt = attendance.active[user].joinedAt;
@@ -70,6 +71,7 @@ app.post("/voice-event", (req, res) => {
     }
     delete attendance.active[user];
     attendance.history.unshift({ type, user, channel, time: timestamp });
+    if (attendance.history.length > 100) attendance.history.pop(); // limit history size
   }
 
   io.emit("update", attendance);
@@ -77,10 +79,11 @@ app.post("/voice-event", (req, res) => {
   res.sendStatus(200);
 });
 
-// Leaderboards & export endpoints are unchanged (omitted for brevity)
-// ... include your daily/weekly/export routes here ...
+// TODO: Add your leaderboard and export routes here
 
-io.on("connection", (socket) => socket.emit("update", attendance));
+io.on("connection", (socket) => {
+  socket.emit("update", attendance);
+});
 
 /* ------------------ DISCORD BOT ------------------ */
 const client = new Client({
@@ -109,13 +112,16 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     const joinedChannel = newState.channelId;
     const leftChannel = oldState.channelId;
 
-    // Only react if it's in the correct guild & voice channel
     if (guildId !== GUILD_ID) return;
 
-    if (!leftChannel && joinedChannel === VOICE_CHANNEL_ID) {
+    // User joined the target VC (including switch from another VC)
+    if (joinedChannel === VOICE_CHANNEL_ID && leftChannel !== VOICE_CHANNEL_ID) {
       await sendEvent({ type: "join", user, channel: newState.channel.name });
       console.log(`📡 ${user} joined VC`);
-    } else if (leftChannel === VOICE_CHANNEL_ID && !joinedChannel) {
+    }
+
+    // User left the target VC (including switch to another VC or disconnect)
+    if (leftChannel === VOICE_CHANNEL_ID && joinedChannel !== VOICE_CHANNEL_ID) {
       await sendEvent({ type: "leave", user, channel: oldState.channel.name });
       console.log(`📡 ${user} left VC`);
     }
@@ -125,11 +131,18 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 });
 
 async function sendEvent(event) {
-  await fetch(`${WEB_API_URL}/voice-event`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(event),
-  });
+  try {
+    const res = await fetch(`${WEB_API_URL}/voice-event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
+    if (!res.ok) {
+      console.error(`Failed to send event: ${res.status} ${res.statusText}`);
+    }
+  } catch (err) {
+    console.error("Failed to send event:", err.message);
+  }
 }
 
 client.login(process.env.BOT_TOKEN);
