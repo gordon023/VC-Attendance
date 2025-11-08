@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discord VC Attendance Tracker</title>
+<title>Zyg - Discord VC Attendance Tracker</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <style>
 body { 
@@ -16,8 +16,27 @@ body {
   flex-direction:column; 
   align-items:center; 
 }
-h1 { color:#238636; margin:20px; }
-.container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:95%; }
+header {
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 20px;
+  background:#161b22;
+  border-bottom:1px solid #30363d;
+}
+h1 { color:#238636; margin:0; }
+button { 
+  background:#238636; 
+  color:#fff; 
+  border:none; 
+  border-radius:6px; 
+  padding:6px 12px; 
+  margin-left:10px; 
+  cursor:pointer; 
+}
+button:hover { background:#2ea043; }
+.container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:95%; margin-top:20px; }
 .panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
@@ -27,19 +46,25 @@ th { color:#238636; }
 #history { max-height:150px; overflow-y:auto; font-size:0.9em; }
 #vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
 textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
-button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
-button:hover { background:#2ea043; }
-.status-icons { font-size:16px; }
-input[type="file"] { margin-top:10px; }
+input[type="file"], input[type="password"] { margin-top:10px; }
 #notification { display:none; }
+#passwordInput { display:none; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px; width:150px; margin-left:10px; }
 </style>
 </head>
 <body>
-<h1> ZyG Discord VC Attendance Live</h1>
+<header>
+  <h1>Zyg - Discord VC Attendance Live</h1>
+  <div>
+    <button id="adminBtn">Admin</button>
+    <input type="password" id="passwordInput" placeholder="Enter password">
+  </div>
+</header>
+
 <div class="container">
 
+<!-- Live VC Panel (always visible) -->
 <div class="panel">
-<h2>🟢 Live Voice Chat - channel</h2>
+<h2>🟢 Active Voice Chat Members</h2>
 <div id="vcAlert"></div>
 <table id="active">
 <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
@@ -47,8 +72,9 @@ input[type="file"] { margin-top:10px; }
 </table>
 </div>
 
-<div class="panel">
-<h2>🖼️ Upload Attendance image/screenshot</h2>
+<!-- Image Uploader Panel (hidden by default, admin only) -->
+<div class="panel" id="uploaderPanel" style="display:none;">
+<h2>🖼️ Image Uploader</h2>
 <input type="file" id="imageInput" multiple accept="image/*">
 <button onclick="uploadImages()">Upload to Table</button>
 <table id="imageTable">
@@ -72,7 +98,6 @@ let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
 const vcAlert = document.getElementById("vcAlert");
-let lastAlertTime = Date.now(); // Track last alert time
 
 // -------------------- SOCKET.IO --------------------
 socket.on("connect", () => console.log("✅ Connected to server"));
@@ -82,10 +107,9 @@ socket.on("update", (data) => {
   updateActive();
   updateHistory();
 
-  // Show top VC alert only if it is a **new event**
+  // Show top VC alert for last change
   const last = attendance.history[0];
-  if(last && last.time > lastAlertTime) {
-    lastAlertTime = last.time;
+  if(last && (!oldHistory[0] || last.time !== oldHistory[0].time)) {
     const typeText = last.type === "join" ? "joined" : "left";
     showVCAlert(`${last.user} ${typeText} ${last.channel}`, last.type);
   }
@@ -199,7 +223,7 @@ async function sendImagesToDiscord() {
     if(res.success){
       uploadedImages.forEach(img=>img.status="Sent");
       saveAndRender();
-      notification.style.display="block"; // only show after sending
+      notification.style.display="block";
       setTimeout(()=>clearImageTable(),15000);
     } else alert("Failed to send images.");
   }).catch(err=>console.error(err));
@@ -209,6 +233,31 @@ async function sendImagesToDiscord() {
 function toggleHistoryPanel() {
   historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
 }
+
+// -------------------- ADMIN LOGIN --------------------
+const adminBtn = document.getElementById("adminBtn");
+const passwordInput = document.getElementById("passwordInput");
+let adminLoggedIn = false;
+let hideTimer;
+
+adminBtn.addEventListener("click", () => {
+  if(adminLoggedIn) return;
+  passwordInput.style.display = "inline-block";
+  passwordInput.focus();
+  
+  // auto-hide after 10s
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(()=>{ if(!adminLoggedIn) passwordInput.style.display="none"; }, 10000);
+});
+
+passwordInput.addEventListener("input", (e) => {
+  clearTimeout(hideTimer);
+  if(passwordInput.value === "0212") {
+    adminLoggedIn = true;
+    passwordInput.style.display = "none";
+    document.getElementById("uploaderPanel").style.display = "block";
+  }
+});
 </script>
 </body>
 </html>
