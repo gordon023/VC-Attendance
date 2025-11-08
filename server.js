@@ -3,8 +3,8 @@ import http from "http";
 import { Server } from "socket.io";
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
-import fs from "fs";
-import path from "path";
+import fetch from "node-fetch";
+import FormData from "form-data";
 
 dotenv.config(); // DISCORD_TOKEN, DISCORD_CHANNEL_ID
 
@@ -88,26 +88,42 @@ io.on("connection", (socket) => {
   socket.emit("update", attendance);
 });
 
-// ---------------- IMAGE UPLOAD ----------------
+// ---------------- IMAGE UPLOAD (WEBHOOK VERSION) ----------------
+const DISCORD_WEBHOOK_URL =
+  "https://discord.com/api/webhooks/1433449406056763557/nifC_lCD78cMTOoMY6ryDBlain76udKiIEVOitIWT_n8XqygjGj_GWU0zDEf8v6GTxGu";
+
 app.post("/upload-images", async (req, res) => {
-  const images = req.body; // [{ name, dataURL }]
-  const channelId = process.env.DISCORD_CHANNEL_ID;
-  const channel = client.channels.cache.get(channelId);
-
-  if (!channel) return res.json({ success: false, error: "Discord channel not found" });
-
   try {
-    for (const img of images) {
-      // Convert base64 to buffer
-      const base64Data = img.dataURL.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, "base64");
-      // Send to Discord
-      await channel.send({ files: [{ attachment: buffer, name: img.name }] });
+    const images = req.body;
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ success: false, error: "No images provided" });
     }
+
+    const formData = new FormData();
+    images.forEach((img, i) => {
+      const base64 = img.dataURL.split(",")[1];
+      const buffer = Buffer.from(base64, "base64");
+      formData.append(`files[${i}]`, buffer, img.name);
+    });
+
+    formData.append("content", "🖼️ New images uploaded from the VC Attendance dashboard!");
+
+    const response = await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("❌ Discord webhook error:", errText);
+      return res.status(500).json({ success: false, error: errText });
+    }
+
+    console.log("✅ Images successfully uploaded to Discord");
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.json({ success: false, error: err.message });
+    console.error("❌ Upload error:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
