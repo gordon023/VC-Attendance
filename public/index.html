@@ -6,166 +6,48 @@
 <title>Discord VC Attendance Tracker</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <style>
-/* ---------- BODY ---------- */
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f5f7fa;
-  color: #2c3e50;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+body { 
+  font-family: 'Segoe UI', sans-serif; 
+  background:#0d1117; 
+  color:#e6edf3; 
+  margin:0; 
+  padding:0; 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
 }
-
-/* ---------- HEADER ---------- */
-h1 {
-  color: #3498db;
-  margin: 20px;
-  font-weight: 600;
-  text-align: center;
-}
-
-/* ---------- CONTAINER ---------- */
-.container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-  width: 95%;
-}
-
-/* ---------- PANEL ---------- */
-.panel {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
-  padding: 20px;
-  flex: 1 1 300px;
-  max-width: 500px;
-  transition: transform 0.2s ease;
-}
-.panel:hover {
-  transform: translateY(-3px);
-}
-
-/* ---------- PANEL HEADERS ---------- */
-.panel h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 1.2em;
-  color: #3498db;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* ---------- TABLES ---------- */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-th, td {
-  border-bottom: 1px solid #e0e0e0;
-  padding: 8px 10px;
-  text-align: left;
-  font-size: 0.95em;
-}
-th {
-  color: #3498db;
-}
-.joined {
-  color: #27ae60;
-  font-weight: 500;
-}
-.left {
-  color: #e74c3c;
-  font-weight: 500;
-}
-
-/* ---------- HISTORY DIV ---------- */
-#history {
-  max-height: 150px;
-  overflow-y: auto;
-  font-size: 0.9em;
-  color: #34495e;
-}
-
-/* ---------- NOTIFICATION ---------- */
-#notification {
-  margin-top: 10px;
-  color: #2ecc71;
-  font-weight: bold;
-  display: none;
-  font-size: 0.95em;
-}
-
-/* ---------- TEXTAREA ---------- */
-textarea {
-  width: 100%;
-  height: 60px;
-  background: #ecf0f1;
-  color: #2c3e50;
-  border: 1px solid #bdc3c7;
-  border-radius: 6px;
-  margin-top: 10px;
-  padding: 6px;
-  resize: none;
-  font-size: 0.95em;
-}
-
-/* ---------- BUTTONS ---------- */
-button {
-  background: #3498db;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 14px;
-  margin-top: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
-}
-button:hover {
-  background: #2980b9;
-}
-
-/* ---------- STATUS ICONS ---------- */
-.status-icons {
-  font-size: 16px;
-}
-
-/* ---------- VC MESSAGE ALERT ---------- */
-#vc-alert {
-  background: #f39c12;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.95em;
-  display: none;
-  margin-bottom: 10px;
-  text-align: center;
-}
+h1 { color:#238636; margin:20px; }
+.container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:95%; }
+.panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
+table { width:100%; border-collapse:collapse; }
+th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
+th { color:#238636; }
+.joined { color:#2ea043; }
+.left { color:#da3633; }
+#history { max-height:150px; overflow-y:auto; font-size:0.9em; }
+#vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
+textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
+button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
+button:hover { background:#2ea043; }
+.status-icons { font-size:16px; }
+input[type="file"] { margin-top:10px; }
 </style>
 </head>
 <body>
 <h1>🎧 Discord VC Attendance Tracker</h1>
 <div class="container">
 
-<!-- ---------- VC ACTIVE PANEL ---------- -->
 <div class="panel">
-<div id="vc-alert">User joined/left VC</div>
 <h2>🟢 Active Voice Chat Members</h2>
+<div id="vcAlert"></div>
 <table id="active">
 <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
 
-<!-- ---------- IMAGE UPLOAD PANEL ---------- -->
 <div class="panel">
-<h2>🖼️ Image Uploader <button onclick="toggleHistory()">📜 History</button></h2>
+<h2>🖼️ Image Uploader</h2>
 <input type="file" id="imageInput" multiple accept="image/*">
 <button onclick="uploadImages()">Upload to Table</button>
 <table id="imageTable">
@@ -175,35 +57,46 @@ button:hover {
 <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
 <button onclick="sendImagesToDiscord()">Send All to Discord</button>
 <button onclick="clearImageTable()">🧹 Clear Table</button>
+<button onclick="toggleHistoryPanel()">📜 Show Join/Leave History</button>
 <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-
-<!-- ---------- JOIN/LEAVE HISTORY ---------- -->
 <div id="history" style="display:none;"></div>
 </div>
 
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
-const vcAlert = document.getElementById("vc-alert");
+const vcAlert = document.getElementById("vcAlert");
 
+// -------------------- SOCKET.IO --------------------
 socket.on("connect", () => console.log("✅ Connected to server"));
 socket.on("update", (data) => {
+  const oldHistory = attendance.history || [];
   attendance = data;
   updateActive();
   updateHistory();
+
+  // Show top VC alert for last change
+  const last = attendance.history[0];
+  if(last && (!oldHistory[0] || last.time !== oldHistory[0].time)) {
+    const typeText = last.type === "join" ? "joined" : "left";
+    showVCAlert(`${last.user} ${typeText} ${last.channel}`, last.type);
+  }
 });
 
-function showVCAlert(message) {
+// -------------------- VC ALERT --------------------
+function showVCAlert(message, type) {
   vcAlert.textContent = message;
+  vcAlert.style.color = type === "join" ? "#2ea043" : "#da3633"; // green for join, red for leave
   vcAlert.style.display = "block";
-  setTimeout(()=>{ vcAlert.style.display = "none"; }, 5000);
+  setTimeout(() => { vcAlert.style.display = "none"; }, 5000);
 }
 
-// --------------- VC PANEL -----------------
+// -------------------- ACTIVE VC --------------------
 function updateActive() {
   activeBody.innerHTML = "";
   const now = new Date();
@@ -229,9 +122,6 @@ function updateHistory() {
     const action = h.type === "join" ? "joined" : "left";
     div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
     historyDiv.appendChild(div);
-
-    // show alert at top of active panel
-    showVCAlert(`${h.user} ${action} ${h.channel}`);
   });
 }
 
@@ -242,7 +132,7 @@ function formatDuration(sec) {
 
 setInterval(updateActive, 1000);
 
-// ---------- IMAGE UPLOADER & HISTORY BUTTON ----------
+// -------------------- IMAGE UPLOADER --------------------
 const imageInput = document.getElementById("imageInput");
 const imageTableBody = document.querySelector("#imageTable tbody");
 const notification = document.getElementById("notification");
@@ -284,6 +174,7 @@ function clearImageTable() {
   messageInput.value = "";
 }
 
+// -------------------- CAPTURE VC PANEL --------------------
 async function captureVCPannel() {
   const panel = document.querySelector(".panel:first-child");
   const canvas = await html2canvas(panel);
@@ -292,6 +183,7 @@ async function captureVCPannel() {
   saveAndRender();
 }
 
+// -------------------- SEND IMAGES TO DISCORD --------------------
 async function sendImagesToDiscord() {
   if(uploadedImages.length===0) return alert("No images to send!");
   const message = messageInput.value.trim() || "🖼️ New images uploaded!";
@@ -310,10 +202,9 @@ async function sendImagesToDiscord() {
   }).catch(err=>console.error(err));
 }
 
-// ---------- HISTORY BUTTON ----------
-function toggleHistory() {
-  if(historyDiv.style.display === "none") historyDiv.style.display = "block";
-  else historyDiv.style.display = "none";
+// -------------------- HISTORY BUTTON --------------------
+function toggleHistoryPanel() {
+  historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
 }
 </script>
 </body>
