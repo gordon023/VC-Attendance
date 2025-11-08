@@ -3,9 +3,9 @@ import http from "http";
 import { Server } from "socket.io";
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch, { FormData, Blob } from "node-fetch";
 
-dotenv.config(); // Load BOT_TOKEN, DISCORD_WEBHOOK_URL, etc.
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
@@ -14,10 +14,10 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static("public"));
 app.use(express.json({ limit: "50mb" }));
 
-// Attendance storage
+// ====== ATTENDANCE STORAGE ======
 let attendance = { active: {}, history: [] };
 
-// Discord bot client
+// ====== DISCORD CLIENT ======
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -26,11 +26,10 @@ const client = new Client({
   ],
 });
 
-// ====== BOT READY EVENT ======
 client.on("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
-  // Pre-populate currently active voice members on startup
+  // Preload active VC members on startup
   client.guilds.cache.forEach(guild => {
     guild.channels.cache
       .filter(ch => ch.isVoiceBased())
@@ -47,7 +46,7 @@ client.on("ready", async () => {
   io.emit("update", attendance);
 });
 
-// ====== VOICE STATE TRACKING ======
+// ====== VOICE STATE UPDATE ======
 client.on("voiceStateUpdate", (oldState, newState) => {
   const memberName = newState.member.displayName;
   const oldChannel = oldState.channel;
@@ -93,7 +92,6 @@ app.post("/upload-images", async (req, res) => {
   if (!DISCORD_WEBHOOK_URL) {
     return res.status(500).json({ success: false, error: "Webhook URL not configured" });
   }
-
   if (!images || !Array.isArray(images) || images.length === 0) {
     return res.status(400).json({ success: false, error: "No images provided" });
   }
@@ -101,17 +99,18 @@ app.post("/upload-images", async (req, res) => {
   try {
     const formData = new FormData();
 
-    images.forEach((img, i) => {
+    for (const [i, img] of images.entries()) {
       const base64 = img.dataURL.split(",")[1];
       const buffer = Buffer.from(base64, "base64");
-      formData.append(`files[${i}]`, buffer, img.name);
-    });
+      const blob = new Blob([buffer], { type: "image/png" });
+      formData.append(`files[${i}]`, blob, img.name);
+    }
 
     formData.append("content", "🖼️ New images uploaded from the VC Attendance dashboard!");
 
     const response = await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
-      body: formData
+      body: formData,
     });
 
     if (!response.ok) {
