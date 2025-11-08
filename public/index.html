@@ -196,10 +196,17 @@ socket.on("update", (data) => {
   updateActive();
   updateHistory();
 
+  // -------------------- VC ALERT (Updated to avoid refresh repeats + smooth display) --------------------
+  let lastDisplayedTime = localStorage.getItem("lastDisplayedTime") || 0;
   const last = attendance.history[0];
-  if(last && (!oldHistory[0] || last.time !== oldHistory[0].time)) {
-    const typeText = last.type === "join" ? "joined" : "left";
-    showVCAlert(`${last.user} ${typeText} ${last.channel}`, last.type);
+  if(last && last.time > lastDisplayedTime) {
+    const now = Date.now();
+    // Only show alerts if event is very recent (5 seconds)
+    if(now - last.time <= 5000) {
+      showVCAlert(`${last.user} ${last.type === "join" ? "joined" : "left"} ${last.channel}`, last.type);
+    }
+    lastDisplayedTime = last.time;
+    localStorage.setItem("lastDisplayedTime", lastDisplayedTime);
   }
 });
 
