@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZYg - Discord VC Attendance Tracker</title>
+<title>ZyG - Discord VC Attendance Live</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -23,21 +23,27 @@ h1 {
   margin:20px 0; 
   text-align:center;
   word-break: break-word;
+  flex:1;
 }
 
 /* ------------------ HEADER ------------------ */
 header {
   width: 100%;
   display:flex;
-  justify-content: space-between;
+  justify-content:center; /* center header title */
   align-items:center;
   padding: 10px 20px;
   box-sizing: border-box;
+  position: relative; /* for absolute positioning of admin controls */
 }
 .admin-controls {
   display:flex;
   align-items:center;
   gap:10px;
+  position: absolute;
+  right: 20px; /* top-right corner */
+  top: 50%;
+  transform: translateY(-50%);
   flex-wrap: nowrap;
 }
 .admin-controls input, .admin-controls button {
@@ -84,8 +90,8 @@ input[type="file"] { margin-top:10px; }
 /* ------------------ RESPONSIVE ------------------ */
 @media(max-width:600px){
   .container{flex-direction:column; align-items:center;}
-  header{flex-direction:column; gap:10px;}
-  .admin-controls{justify-content:center;}
+  header{justify-content:center; padding:10px;}
+  .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
   .panel{max-width:95%;}
 }
 </style>
@@ -105,7 +111,7 @@ input[type="file"] { margin-top:10px; }
 <div class="container">
 
   <div class="panel" id="vcPanel">
-    <h2>🟢 Active Voice Chat Members</h2>
+    <h2>🟢 Live Voice Chat - Lordnine</h2>
     <div id="vcAlert"></div>
     <table id="active">
       <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
@@ -114,7 +120,7 @@ input[type="file"] { margin-top:10px; }
   </div>
 
   <div class="panel" id="imagePanel" style="display:none;">
-    <h2>🖼️ Image Uploader</h2>
+    <h2>🖼️ Upload image/screenshot for Attendance</h2>
     <input type="file" id="imageInput" multiple accept="image/*">
     <button onclick="uploadImages()">Upload to Table</button>
     <table id="imageTable">
@@ -132,7 +138,7 @@ input[type="file"] { margin-top:10px; }
 </div>
 
 <script>
-/* -------------------- SOCKET.IO -------------------- */
+// -------------------- SOCKET.IO --------------------
 const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
@@ -197,7 +203,7 @@ socket.on("update", (data) => {
   }
 });
 
-/* -------------------- IMAGE UPLOADER -------------------- */
+// -------------------- IMAGE UPLOADER --------------------
 const imageInput = document.getElementById("imageInput");
 const imageTableBody = document.querySelector("#imageTable tbody");
 const notification = document.getElementById("notification");
@@ -269,7 +275,7 @@ function toggleHistoryPanel() {
   historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
 }
 
-/* -------------------- ADMIN LOGIN -------------------- */
+// -------------------- ADMIN LOGIN --------------------
 const adminBtn = document.getElementById("adminBtn");
 const adminPassword = document.getElementById("adminPassword");
 const logoutBtn = document.getElementById("logoutBtn");
