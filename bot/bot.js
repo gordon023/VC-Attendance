@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, Partials } from "discord.js";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 
@@ -7,13 +7,24 @@ dotenv.config();
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMembers
-  ]
+  ],
+  partials: [Partials.GuildMember, Partials.User]
 });
 
-client.once("ready", () => {
+client.once("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
+
+  // Ensure guild members are cached so voiceStateUpdate fires correctly
+  client.guilds.cache.forEach(async (guild) => {
+    try {
+      await guild.members.fetch();
+      console.log(`📥 Cached members for guild: ${guild.name}`);
+    } catch (err) {
+      console.error(`⚠️ Failed to cache members for ${guild.name}:`, err.message);
+    }
+  });
 });
 
 client.on("voiceStateUpdate", (oldState, newState) => {
@@ -34,7 +45,7 @@ client.on("voiceStateUpdate", (oldState, newState) => {
 
 async function sendEvent(event) {
   try {
-    await fetch(process.env.WEB_API_URL, {
+    await fetch(process.env.WEB_API_URL + "voice-event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event)
