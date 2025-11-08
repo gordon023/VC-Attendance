@@ -13,14 +13,20 @@ app.use(express.json());
 app.use(express.static("public"));
 
 const dataFile = "./data/attendance.json";
-let attendance = { history: [], active: {} };
+let attendance = { history: [], active: {}, stats: {} };
 
+// Load data if exists
 if (fs.existsSync(dataFile)) {
   attendance = JSON.parse(fs.readFileSync(dataFile));
 }
 
 function saveData() {
   fs.writeFileSync(dataFile, JSON.stringify(attendance, null, 2));
+}
+
+// Helper to calculate session duration
+function getSecondsDiff(startTime, endTime) {
+  return Math.floor((new Date(endTime) - new Date(startTime)) / 1000);
 }
 
 app.post("/voice-event", (req, res) => {
@@ -31,6 +37,15 @@ app.post("/voice-event", (req, res) => {
     attendance.active[user] = { channel, joinedAt: timestamp };
     attendance.history.unshift({ type, user, channel, time: timestamp });
   } else if (type === "leave") {
+    if (attendance.active[user]) {
+      const joinedAt = attendance.active[user].joinedAt;
+      const duration = getSecondsDiff(joinedAt, timestamp);
+
+      // Add to total stats
+      if (!attendance.stats[user]) attendance.stats[user] = 0;
+      attendance.stats[user] += duration;
+    }
+
     delete attendance.active[user];
     attendance.history.unshift({ type, user, channel, time: timestamp });
   }
