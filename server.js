@@ -4,9 +4,8 @@ import { Server } from "socket.io";
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import FormData from "form-data";
 
-dotenv.config(); // DISCORD_TOKEN, DISCORD_CHANNEL_ID
+dotenv.config(); // Loads DISCORD_TOKEN, DISCORD_CHANNEL_ID, etc.
 
 const app = express();
 const server = http.createServer(app);
@@ -14,12 +13,12 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 // Serve frontend
 app.use(express.static("public"));
-app.use(express.json({ limit: "50mb" })); // for large image payloads
+app.use(express.json({ limit: "50mb" })); // Handle large image payloads
 
 // Attendance storage
 let attendance = { active: {}, history: [] };
 
-// Discord bot
+// Discord bot setup
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -31,15 +30,15 @@ const client = new Client({
 client.on("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
-  // Populate active VC members on bot start
-  client.guilds.cache.forEach(guild => {
+  // Populate current VC members when bot starts
+  client.guilds.cache.forEach((guild) => {
     guild.channels.cache
-      .filter(ch => ch.isVoiceBased())
-      .forEach(vc => {
-        vc.members.forEach(member => {
+      .filter((ch) => ch.isVoiceBased())
+      .forEach((vc) => {
+        vc.members.forEach((member) => {
           attendance.active[member.displayName] = {
             channel: vc.name,
-            joinedAt: Date.now(), // approximate
+            joinedAt: Date.now(), // approximate join time
           };
         });
       });
@@ -48,7 +47,7 @@ client.on("ready", async () => {
   io.emit("update", attendance);
 });
 
-// Voice state updates
+// Handle join/leave VC
 client.on("voiceStateUpdate", (oldState, newState) => {
   const memberName = newState.member.displayName;
   const oldChannel = oldState.channel;
@@ -82,13 +81,13 @@ client.on("voiceStateUpdate", (oldState, newState) => {
   io.emit("update", attendance);
 });
 
-// Socket.IO connection
+// Socket.IO connections
 io.on("connection", (socket) => {
   console.log("✅ Client connected");
   socket.emit("update", attendance);
 });
 
-// ---------------- IMAGE UPLOAD (WEBHOOK VERSION) ----------------
+// ---------------- IMAGE UPLOAD HANDLER ----------------
 const DISCORD_WEBHOOK_URL =
   "https://discord.com/api/webhooks/1433449406056763557/nifC_lCD78cMTOoMY6ryDBlain76udKiIEVOitIWT_n8XqygjGj_GWU0zDEf8v6GTxGu";
 
@@ -103,7 +102,7 @@ app.post("/upload-images", async (req, res) => {
     images.forEach((img, i) => {
       const base64 = img.dataURL.split(",")[1];
       const buffer = Buffer.from(base64, "base64");
-      formData.append(`files[${i}]`, buffer, img.name);
+      formData.append(`files[${i}]`, new Blob([buffer]), img.name);
     });
 
     formData.append("content", "🖼️ New images uploaded from the VC Attendance dashboard!");
