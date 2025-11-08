@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VC Attendance Tracker</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white">
+  <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 rounded-2xl">
+    <h1 class="text-2xl font-bold mb-4">Voice Channel Attendance Tracker</h1>
+    <div>
+      <h2 class="text-xl mb-2">🟢 Active Members</h2>
+      <ul id="activeList" class="mb-6"></ul>
+      <h2 class="text-xl mb-2">🕒 History</h2>
+      <ul id="historyList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const activeList = document.getElementById('activeList');
+    const historyList = document.getElementById('historyList');
+
+    socket.on("update", data => {
+      activeList.innerHTML = '';
+      for (const [user, info] of Object.entries(data.active)) {
+        const li = document.createElement('li');
+        li.textContent = `${user} in ${info.channel}`;
+        activeList.appendChild(li);
+      }
+
+      historyList.innerHTML = '';
+      data.history.slice(0, 10).forEach(event => {
+        const li = document.createElement('li');
+        li.textContent = `${event.user} ${event.type === 'join' ? 'joined' : 'left'} ${event.channel} at ${new Date(event.time).toLocaleTimeString()}`;
+        historyList.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>
