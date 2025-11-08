@@ -3,11 +3,8 @@ import http from "http";
 import { Server } from "socket.io";
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
-import XLSX from "xlsx";
-import path from "path";
-import fs from "fs";
 
-dotenv.config();
+dotenv.config(); // Load BOT_TOKEN
 
 const app = express();
 const server = http.createServer(app);
@@ -17,145 +14,86 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static("public"));
 
 // Attendance storage
-let attendance = {
-  active: {},     // { displayName: { channel, joinedAt } }
-  history: [],    // [{ user, channel, type, time }]
-  leaderboard: {} // { displayName: totalTimeMs }
-};
+let attendance = { active: {}, history: [] };
 
 // Discord bot
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMembers
-  ]
+    GatewayIntentBits.GuildMembers,
+  ],
 });
 
-// Helper functions
-function formatDuration(sec) {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
-}
-
-function getLeaderboard() {
-  return Object.entries(attendance.leaderboard)
-    .map(([user, ms]) => ({ user, time: formatDuration(Math.floor(ms / 1000)) }))
-    .sort((a,b)=>b.time.localeCompare(a.time));
-}
-
-function updateFrontend() {
-  io.emit("update", {
-    active: attendance.active,
-    history: attendance.history.slice(0, 50),
-    leaderboard: getLeaderboard()
-  });
-}
-
-// Scan VC members already inside at bot start
-async function scanInitialVCs() {
-  client.guilds.cache.forEach(guild => {
-    guild.channels.cache.filter(c => c.isVoiceBased()).forEach(vc => {
-      vc.members.forEach(member => {
-        const displayName = member.nickname || member.user.username;
-        if (!attendance.active[displayName]) {
-          attendance.active[displayName] = { channel: vc.name, joinedAt: Date.now() };
-        }
-      });
-    });
-  });
-  updateFrontend();
-}
-
-// Discord events
 client.on("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
-  await scanInitialVCs();
+
+  // Populate current active VC members on startup
+  client.guilds.cache.forEach(guild => {
+    guild.channels.cache
+      .filter(ch => ch.isVoiceBased())
+      .forEach(vc => {
+        vc.members.forEach(member => {
+          const nickname = member.nickname || member.user.username;
+          attendance.active[nickname] = { channel: vc.name, joinedAt: Date.now() };
+        });
+      });
+  });
+
+  // Broadcast initial attendance
+  io.emit("update", attendance);
 });
 
+// Listen to voice state updates
 client.on("voiceStateUpdate", (oldState, newState) => {
-  const member = newState.member || oldState.member;
-  if (!member) return;
-
-  const displayName = member.nickname || member.user.username;
+  const member = newState.member;
+  const nickname = member.nickname || member.user.username;
   const oldChannel = oldState.channel;
   const newChannel = newState.channel;
   const now = Date.now();
 
-  // Left VC
+  // User left VC
   if (oldChannel && !newChannel) {
-    const joinedAt = attendance.active[displayName]?.joinedAt || now;
-    const sessionTime = now - joinedAt;
-    attendance.leaderboard[displayName] = (attendance.leaderboard[displayName] || 0) + sessionTime;
-    delete attendance.active[displayName];
-
-    attendance.history.unshift({
-      user: displayName,
-      channel: oldChannel.name,
-      type: "left",
-      time: now
-    });
-
-    console.log(`📡 ${displayName} left VC`);
+    delete attendance.active[nickname];
+    attendance.history.unshift({ user: nickname, channel: oldChannel.name, type: "left", time: now });
+    console.log(`📡 ${nickname} left VC`);
   }
 
-  // Joined VC
+  // User joined VC
   if (!oldChannel && newChannel) {
-    attendance.active[displayName] = { channel: newChannel.name, joinedAt: now };
-    attendance.history.unshift({
-      user: displayName,
-      channel: newChannel.name,
-      type: "join",
-      time: now
-    });
-    console.log(`📡 ${displayName} joined VC`);
+    attendance.active[nickname] = { channel: newChannel.name, joinedAt: now };
+    attendance.history.unshift({ user: nickname, channel: newChannel.name, type: "join", time: now });
+    console.log(`📡 ${nickname} joined VC`);
   }
 
-  // Keep last 100 history entries
-  if (attendance.history.length > 100) attendance.history = attendance.history.slice(0,100);
-
-  updateFrontend();
+  // Broadcast to frontend
+  io.emit("update", attendance);
 });
 
-// Socket.IO
+// Socket.IO connection
 io.on("connection", (socket) => {
   console.log("✅ Client connected");
-  updateFrontend();
+  socket.emit("update", attendance);
 });
 
-// XLSX Export
-app.get("/export/xlsx", (req,res) => {
-  const rows = [];
-
+// Export attendance as CSV
+app.get("/export/csv", (req, res) => {
+  const rows = [["User", "Channel", "Joined At"]];
   Object.entries(attendance.active).forEach(([user, info]) => {
-    const now = Date.now();
-    const duration = formatDuration(Math.floor((now - info.joinedAt)/1000));
-    rows.push({ user, channel: info.channel, status: "Active", duration });
+    rows.push([user, info.channel, new Date(info.joinedAt).toLocaleString()]);
   });
 
-  attendance.history.slice(0,100).forEach(h=>{
-    rows.push({
-      user: h.user,
-      channel: h.channel,
-      status: h.type,
-      duration: "-"
-    });
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-
-  const filePath = path.join(process.cwd(),"attendance.xlsx");
-  XLSX.writeFile(wb, filePath);
-  res.download(filePath, "attendance.xlsx", ()=>fs.unlinkSync(filePath));
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", "attachment; filename=attendance.csv");
+  res.send(csv);
 });
 
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, ()=>console.log(`🚀 Server running on http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
 
-// Login
+// Login to Discord
 client.login(process.env.BOT_TOKEN);
