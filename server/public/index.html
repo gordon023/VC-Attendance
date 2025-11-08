@@ -129,10 +129,16 @@
     function updateActive() {
       activeBody.innerHTML = "";
       const now = new Date();
-      for (const [user, info] of Object.entries(attendance.active || {})) {
+
+      const activeEntries = Object.entries(attendance.active || {}).sort(
+        ([, a], [, b]) => new Date(a.joinedAt) - new Date(b.joinedAt)
+      );
+
+      for (const [user, info] of activeEntries) {
         const joined = new Date(info.joinedAt);
         const duration = Math.floor((now - joined) / 1000);
         const durationText = formatDuration(duration);
+
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
         activeBody.appendChild(tr);
@@ -172,9 +178,7 @@
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
       const s = sec % 60;
-      return `${h.toString().padStart(2, "0")}:${m
-        .toString()
-        .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     }
 
     // Live duration updates every second
