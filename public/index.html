@@ -6,7 +6,7 @@
 <title>Zyg - Discord VC Attendance Tracker</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <style>
-/* -------------------- GENERAL -------------------- */
+/* ----------- BODY ----------- */
 body { 
   font-family: 'Segoe UI', sans-serif; 
   background:#0d1117; 
@@ -16,37 +16,58 @@ body {
   display:flex; 
   flex-direction:column; 
   align-items:center; 
+  box-sizing:border-box;
 }
+
+/* ----------- HEADER ----------- */
 header {
-  width:100%;
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:space-between;
-  align-items:center;
-  padding:10px 20px;
-  background:#161b22;
-  border-bottom:1px solid #30363d;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center the title */
+  align-items: center;
+  padding: 10px 20px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  position: relative;
+  box-sizing: border-box;
 }
-h1 { color:#238636; margin:0; font-size:1.2em; flex:1; min-width:200px; }
-button { 
-  background:#238636; 
-  color:#fff; 
-  border:none; 
-  border-radius:6px; 
-  padding:6px 12px; 
-  margin-left:10px; 
-  cursor:pointer; 
-  font-size:0.9em;
+
+header h1 {
+  margin: 0;
+  font-size: 1.5em;
+  text-align: center;
+  white-space: nowrap;
 }
-button:hover { background:#2ea043; }
+
+header .admin-panel {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+header .admin-panel input[type="password"] {
+  width: 120px;
+  max-width: 40vw;
+  box-sizing: border-box;
+}
+
+header .admin-panel button {
+  flex: none;
+  white-space: nowrap;
+  padding: 5px 10px;
+}
+
+/* ----------- PANELS ----------- */
 .container { 
   display:flex; 
   flex-wrap:wrap; 
   gap:20px; 
   justify-content:center; 
   width:95%; 
-  margin-top:20px; 
-  box-sizing:border-box;
 }
 .panel { 
   background:#161b22; 
@@ -55,44 +76,44 @@ button:hover { background:#2ea043; }
   padding:20px; 
   flex:1 1 300px; 
   max-width:500px; 
-  min-width:280px;
-  box-sizing:border-box;
+  box-sizing: border-box;
 }
 table { width:100%; border-collapse:collapse; }
-th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; font-size:0.9em; }
+th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
 th { color:#238636; }
 .joined { color:#2ea043; }
 .left { color:#da3633; }
-#history { max-height:150px; overflow-y:auto; font-size:0.8em; }
-#vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; word-break:break-word; }
-textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; font-size:0.9em; }
-input[type="file"], input[type="password"] { margin-top:10px; font-size:0.9em; }
-#notification { display:none; font-size:0.9em; margin-top:6px; color:#2ea043; }
-#passwordInput { display:none; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px; width:150px; margin-left:10px; font-size:0.9em; }
+#history { max-height:150px; overflow-y:auto; font-size:0.9em; }
+#vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
+textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
+button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
+button:hover { background:#2ea043; }
+.status-icons { font-size:16px; }
+input[type="file"] { margin-top:10px; }
 
-/* -------------------- RESPONSIVE -------------------- */
-@media (max-width:768px) {
-  header { flex-direction: column; align-items:flex-start; }
-  h1 { margin-bottom:10px; font-size:1em; }
-  .container { flex-direction:column; align-items:center; }
-  .panel { max-width:95%; flex:1 1 90%; }
+/* ----------- RESPONSIVE ----------- */
+@media (max-width: 768px) {
+  header h1 { font-size: 1.2em; }
+  header .admin-panel { position: static; justify-content: center; margin-top: 8px; }
+  header .admin-panel input[type="password"] { width: 100px; max-width: 70vw; }
+  .panel { flex:1 1 90%; max-width: 95%; }
 }
 </style>
 </head>
 <body>
 <header>
-  <h1>Zyg - Discord VC Attendance Live</h1>
-  <div>
-    <button id="adminBtn">Admin</button>
+  <h1>Zyg</h1>
+  <div class="admin-panel">
+    <button id="adminBtn">Admin Login</button>
+    <input type="password" id="adminPassword" placeholder="Password" style="display:none;">
     <button id="logoutBtn" style="display:none;">Logout</button>
-    <input type="password" id="passwordInput" placeholder="Enter password">
   </div>
 </header>
 
+<h1> Discord VC Attendance Live</h1>
 <div class="container">
 
-<!-- Live VC Panel (always visible) -->
-<div class="panel">
+<div class="panel" id="vcPanel">
 <h2>🟢 Active Voice Chat Members</h2>
 <div id="vcAlert"></div>
 <table id="active">
@@ -101,8 +122,7 @@ input[type="file"], input[type="password"] { margin-top:10px; font-size:0.9em; }
 </table>
 </div>
 
-<!-- Image Uploader Panel (hidden by default, admin only) -->
-<div class="panel" id="uploaderPanel" style="display:none;">
+<div class="panel" id="imagePanel" style="display:none;">
 <h2>🖼️ Image Uploader</h2>
 <input type="file" id="imageInput" multiple accept="image/*">
 <button onclick="uploadImages()">Upload to Table</button>
@@ -127,6 +147,36 @@ let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
 const vcAlert = document.getElementById("vcAlert");
+const imagePanel = document.getElementById("imagePanel");
+
+// Admin login logic
+const adminBtn = document.getElementById("adminBtn");
+const adminPassword = document.getElementById("adminPassword");
+const logoutBtn = document.getElementById("logoutBtn");
+let adminLoggedIn = false;
+
+adminBtn.addEventListener("click", () => {
+  adminPassword.style.display = "inline-block";
+  adminPassword.focus();
+  setTimeout(() => { adminPassword.style.display = "none"; }, 10000);
+});
+
+adminPassword.addEventListener("keyup", (e) => {
+  if(e.key === "Enter" && adminPassword.value === "0212") {
+    adminLoggedIn = true;
+    adminPassword.style.display = "none";
+    imagePanel.style.display = "block";
+    logoutBtn.style.display = "inline-block";
+    adminBtn.style.display = "none";
+  }
+});
+
+logoutBtn.addEventListener("click", () => {
+  adminLoggedIn = false;
+  imagePanel.style.display = "none";
+  logoutBtn.style.display = "none";
+  adminBtn.style.display = "inline-block";
+});
 
 // -------------------- SOCKET.IO --------------------
 socket.on("connect", () => console.log("✅ Connected to server"));
@@ -261,38 +311,6 @@ async function sendImagesToDiscord() {
 function toggleHistoryPanel() {
   historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
 }
-
-// -------------------- ADMIN LOGIN --------------------
-const adminBtn = document.getElementById("adminBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const passwordInput = document.getElementById("passwordInput");
-let adminLoggedIn = false;
-let hideTimer;
-
-adminBtn.addEventListener("click", () => {
-  if(adminLoggedIn) return;
-  passwordInput.style.display = "inline-block";
-  passwordInput.focus();
-  
-  clearTimeout(hideTimer);
-  hideTimer = setTimeout(()=>{ if(!adminLoggedIn) passwordInput.style.display="none"; }, 10000);
-});
-
-passwordInput.addEventListener("input", (e) => {
-  clearTimeout(hideTimer);
-  if(passwordInput.value === "0212") {
-    adminLoggedIn = true;
-    passwordInput.style.display = "none";
-    document.getElementById("uploaderPanel").style.display = "block";
-    logoutBtn.style.display = "inline-block";
-  }
-});
-
-logoutBtn.addEventListener("click", () => {
-  adminLoggedIn = false;
-  document.getElementById("uploaderPanel").style.display = "none";
-  logoutBtn.style.display = "none";
-});
 </script>
 </body>
 </html>
