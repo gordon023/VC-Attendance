@@ -16,6 +16,20 @@ th { color:#238636; }
 .joined { color:#238636; }
 .left { color:#da3633; }
 #history { max-height:250px; overflow-y:auto; }
+
+/* ---------- SMALLER JOIN/LEAVE HISTORY PANEL ---------- */
+.panel:nth-child(2) {
+  flex: 1 1 200px;  /* smaller base width */
+  max-width: 300px; /* smaller max width */
+  padding: 10px;    /* reduce padding */
+}
+#history {
+  max-height: 150px; /* reduce height */
+  font-size: 0.9em;  /* slightly smaller text */
+}
+
+/* ------------------------------------------------------- */
+
 #notification { margin-top:10px; color:#2ea043; font-weight:bold; display:none; }
 textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
 button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
@@ -77,12 +91,9 @@ function updateActive() {
     const joined = new Date(info.joinedAt || Date.now());
     const durationSec = Math.floor((now - joined)/1000);
     const durationText = formatDuration(durationSec);
-
-    // Correct mute/deaf detection
     const muteIcon = info.selfMute || info.serverMute ? "🔇" : "🎤";
     const deafIcon = info.selfDeaf || info.serverDeaf ? "🔕" : "👂";
     const statusText = `<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
-
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${user}</td><td>${info.channel || "Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
     activeBody.appendChild(tr);
