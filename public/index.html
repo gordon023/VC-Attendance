@@ -47,102 +47,127 @@
 
   </div>
 
-  <script>
-    const socket = io();
-    let attendance = {};
-    const activeBody = document.querySelector("#active tbody");
-    const historyDiv = document.querySelector("#history");
+ <script>
+const socket = io();
+let attendance = {};
+const activeBody = document.querySelector("#active tbody");
+const historyDiv = document.querySelector("#history");
 
-    socket.on("connect", () => console.log("✅ Connected to server"));
-    socket.on("update", (data) => {
-      attendance = data;
-      updateActive();
-      updateHistory();
-    });
+socket.on("connect", () => console.log("✅ Connected to server"));
+socket.on("update", (data) => {
+  attendance = data;
+  updateActive();
+  updateHistory();
+});
 
-    function updateActive() {
-      activeBody.innerHTML = "";
-      const now = new Date();
-      Object.entries(attendance.active || {}).forEach(([user, info]) => {
-        const joined = new Date(info.joinedAt);
-        const durationSec = Math.floor((now - joined)/1000);
-        const durationText = formatDuration(durationSec);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
-        activeBody.appendChild(tr);
-      });
-    }
+function updateActive() {
+  activeBody.innerHTML = "";
+  const now = new Date();
+  Object.entries(attendance.active || {}).forEach(([user, info]) => {
+    const joined = new Date(info.joinedAt);
+    const durationSec = Math.floor((now - joined)/1000);
+    const durationText = formatDuration(durationSec);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
+    activeBody.appendChild(tr);
+  });
+}
 
-    function updateHistory() {
-      historyDiv.innerHTML = "";
-      (attendance.history || []).slice(0, 20).forEach(h => {
-        const div = document.createElement("div");
-        const time = new Date(h.time).toLocaleTimeString();
-        const typeClass = h.type === "join" ? "joined" : "left";
-        const action = h.type === "join" ? "joined" : "left";
-        div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
-        historyDiv.appendChild(div);
-      });
-    }
+function updateHistory() {
+  historyDiv.innerHTML = "";
+  (attendance.history || []).slice(0, 20).forEach(h => {
+    const div = document.createElement("div");
+    const time = new Date(h.time).toLocaleTimeString();
+    const typeClass = h.type === "join" ? "joined" : "left";
+    const action = h.type === "join" ? "joined" : "left";
+    div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+    historyDiv.appendChild(div);
+  });
+}
 
-    function formatDuration(sec) {
-      const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
-      return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
-    }
+function formatDuration(sec) {
+  const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
 
-    setInterval(updateActive, 1000);
+setInterval(updateActive, 1000);
 
-    // ---------------- IMAGE UPLOADER ----------------
+// ---------------- IMAGE UPLOADER ----------------
 const imageInput = document.getElementById("imageInput");
 const imageTableBody = document.querySelector("#imageTable tbody");
-let uploadedImages = [];
+let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
+renderImageTable();
 
 function uploadImages() {
   const files = Array.from(imageInput.files);
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      uploadedImages.push({ file, dataURL: e.target.result, status: "Pending" });
+      uploadedImages.push({ fileName: file.name, dataURL: e.target.result, status: "Pending" });
       renderImageTable();
+      saveToLocalStorage();
     };
     reader.readAsDataURL(file);
   });
-  imageInput.value = ""; // clear input after upload to table
+  imageInput.value = "";
 }
 
 function renderImageTable() {
   imageTableBody.innerHTML = "";
-  uploadedImages.forEach((img, i) => {
+  uploadedImages.forEach((img) => {
     const tr = document.createElement("tr");
+    let statusClass = "status-pending";
+    if(img.status === "Uploading") statusClass = "status-uploading";
+    if(img.status === "Sent") statusClass = "status-sent";
+    if(img.status === "Failed") statusClass = "status-failed";
     tr.innerHTML = `
       <td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td>
-      <td>${img.file.name}</td>
-      <td>${img.status}</td>
+      <td>${img.fileName}</td>
+      <td class="${statusClass}">${img.status}</td>
     `;
     imageTableBody.appendChild(tr);
   });
 }
 
-function sendImagesToDiscord() {
-  if (uploadedImages.length === 0) return alert("No images to send!");
-  fetch("/upload-images", {
-    method: "POST",
-    body: JSON.stringify(uploadedImages.map(i => ({ name: i.file.name, dataURL: i.dataURL }))),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.success) {
-      uploadedImages.forEach(img => img.status = "Sent");
-      renderImageTable();
-      alert("Images successfully uploaded to Discord!");
-    } else {
-      alert("Failed to send images.");
-    }
-  })
-  .catch(err => console.error(err));
+function saveToLocalStorage() {
+  localStorage.setItem("uploadedImages", JSON.stringify(uploadedImages));
 }
 
-  </script>
+async function sendImagesToDiscord() {
+  if (uploadedImages.length === 0) return alert("No images to send!");
+  for (let i = 0; i < uploadedImages.length; i++) {
+    uploadedImages[i].status = "Uploading";
+    renderImageTable();
+    saveToLocalStorage();
+    try {
+      await fetch("https://discord.com/api/webhooks/1433449406056763557/nifC_lCD78cMTOoMY6ryDBlain76udKiIEVOitIWT_n8XqygjGj_GWU0zDEf8v6GTxGu", {
+        method: "POST",
+        body: JSON.stringify({ content: "", embeds: [], files: [{ name: uploadedImages[i].fileName, content: uploadedImages[i].dataURL.split(",")[1] }] }),
+        headers: { "Content-Type": "application/json" }
+      });
+      uploadedImages[i].status = "Sent";
+      renderImageTable();
+      saveToLocalStorage();
+    } catch(err) {
+      console.error(err);
+      uploadedImages[i].status = "Failed";
+      renderImageTable();
+      saveToLocalStorage();
+    }
+  }
+
+  // Automatically clear sent images after 15 seconds
+  const sentCount = uploadedImages.filter(img => img.status === "Sent").length;
+  if(sentCount > 0){
+    setTimeout(() => {
+      uploadedImages = uploadedImages.filter(img => img.status !== "Sent");
+      renderImageTable();
+      saveToLocalStorage();
+      alert(`${sentCount} image(s) successfully uploaded to Discord and cleared!`);
+    }, 15000);
+  }
+}
+</script>
+
 </body>
 </html>
