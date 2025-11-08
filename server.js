@@ -2,7 +2,6 @@ import express from "express";
 import http from "http";
 import { Server as SocketServer } from "socket.io";
 import fs from "fs-extra";
-import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
@@ -16,9 +15,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new SocketServer(server);
+const io = new SocketServer(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] },
+});
 
-app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -27,13 +27,12 @@ fs.ensureFileSync(dataFile);
 
 let attendance = { history: [], active: {}, stats: {} };
 
-// Load data if exists
+// Load existing data
 if (fs.existsSync(dataFile)) {
   try {
     const content = fs.readFileSync(dataFile, "utf8");
-    attendance = content ? JSON.parse(content) : { history: [], active: {}, stats: {} };
-  } catch (err) {
-    console.error("⚠️ Error reading attendance.json, resetting:", err.message);
+    attendance = content ? JSON.parse(content) : attendance;
+  } catch {
     attendance = { history: [], active: {}, stats: {} };
   }
 }
@@ -42,48 +41,49 @@ function saveData() {
   fs.writeFileSync(dataFile, JSON.stringify(attendance, null, 2));
 }
 
-function getSecondsDiff(startTime, endTime) {
-  return Math.floor((new Date(endTime) - new Date(startTime)) / 1000);
+function getSecondsDiff(start, end) {
+  return Math.floor((new Date(end) - new Date(start)) / 1000);
 }
 
-// ------------------- REST API -------------------
+function formatDuration(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
 
+/* ------------------ REST API ------------------ */
 app.post("/voice-event", (req, res) => {
   const { type, user, channel } = req.body;
   const timestamp = new Date().toISOString();
 
   if (type === "join") {
     attendance.active[user] = { channel, joinedAt: timestamp };
-    attendance.history.unshift({ type, user, channel, time: timestamp });
-    if (attendance.history.length > 100) attendance.history.pop();
   } else if (type === "leave") {
     if (attendance.active[user]) {
-      const joinedAt = attendance.active[user].joinedAt;
-      const duration = getSecondsDiff(joinedAt, timestamp);
+      const duration = getSecondsDiff(attendance.active[user].joinedAt, timestamp);
       attendance.stats[user] = (attendance.stats[user] || 0) + duration;
     }
     delete attendance.active[user];
-    attendance.history.unshift({ type, user, channel, time: timestamp });
-    if (attendance.history.length > 100) attendance.history.pop();
   }
+
+  attendance.history.unshift({ type, user, channel, time: timestamp });
+  if (attendance.history.length > 100) attendance.history.pop();
 
   io.emit("update", attendance);
   saveData();
   res.sendStatus(200);
 });
 
+/* ------------------ Socket.IO ------------------ */
 io.on("connection", (socket) => {
+  console.log("✅ Client connected");
   socket.emit("update", attendance);
 });
 
-// ------------------- DISCORD BOT -------------------
-
+/* ------------------ DISCORD BOT ------------------ */
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMembers,
-  ],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers],
 });
 
 const GUILD_ID = process.env.GUILD_ID;
@@ -100,43 +100,39 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     const user = newState.member?.user?.username;
     if (!user) return;
 
-    const guildId = newState.guild.id;
     const joinedChannel = newState.channelId;
     const leftChannel = oldState.channelId;
 
-    if (guildId !== GUILD_ID) return;
+    if (newState.guild.id !== GUILD_ID) return;
 
-    // User joined VC
     if (joinedChannel === VOICE_CHANNEL_ID && leftChannel !== VOICE_CHANNEL_ID) {
       await sendEvent({ type: "join", user, channel: newState.channel.name });
       console.log(`📡 ${user} joined VC`);
     }
-
-    // User left VC
     if (leftChannel === VOICE_CHANNEL_ID && joinedChannel !== VOICE_CHANNEL_ID) {
       await sendEvent({ type: "leave", user, channel: oldState.channel.name });
       console.log(`📡 ${user} left VC`);
     }
   } catch (err) {
-    console.error("VoiceState error:", err);
+    console.error(err);
   }
 });
 
 async function sendEvent(event) {
   try {
-    await fetch(`${WEB_API_URL}/voice-event`, {
+    const res = await fetch(`${WEB_API_URL}/voice-event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event),
     });
+    if (!res.ok) console.error("Failed to send event:", res.statusText);
   } catch (err) {
-    console.error("Failed to send event:", err.message);
+    console.error("Error sending event:", err.message);
   }
 }
 
 client.login(process.env.BOT_TOKEN);
 
-// ------------------- START SERVER -------------------
-
+/* ------------------ START SERVER ------------------ */
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🌐 Web + Bot running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
