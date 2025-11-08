@@ -31,6 +31,7 @@ button { background:#238636; color:#fff; border:none; border-radius:6px; padding
 button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
+#notification { display:none; }
 </style>
 </head>
 <body>
@@ -71,6 +72,7 @@ let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
 const vcAlert = document.getElementById("vcAlert");
+let lastAlertTime = Date.now(); // Track last alert time
 
 // -------------------- SOCKET.IO --------------------
 socket.on("connect", () => console.log("✅ Connected to server"));
@@ -80,9 +82,10 @@ socket.on("update", (data) => {
   updateActive();
   updateHistory();
 
-  // Show top VC alert for last change
+  // Show top VC alert only if it is a **new event**
   const last = attendance.history[0];
-  if(last && (!oldHistory[0] || last.time !== oldHistory[0].time)) {
+  if(last && last.time > lastAlertTime) {
+    lastAlertTime = last.time;
     const typeText = last.type === "join" ? "joined" : "left";
     showVCAlert(`${last.user} ${typeText} ${last.channel}`, last.type);
   }
@@ -196,7 +199,7 @@ async function sendImagesToDiscord() {
     if(res.success){
       uploadedImages.forEach(img=>img.status="Sent");
       saveAndRender();
-      notification.style.display="block";
+      notification.style.display="block"; // only show after sending
       setTimeout(()=>clearImageTable(),15000);
     } else alert("Failed to send images.");
   }).catch(err=>console.error(err));
