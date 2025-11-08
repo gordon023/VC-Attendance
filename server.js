@@ -28,25 +28,25 @@ const client = new Client({
 client.on("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
-  // Populate current active VC members on startup
-  client.guilds.cache.forEach(guild => {
-    guild.channels.cache
-      .filter(ch => ch.isVoiceBased())
-      .forEach(vc => {
-        vc.members.forEach(member => {
+  // Populate currently active voice channels at startup
+  for (const guild of client.guilds.cache.values()) {
+    await guild.members.fetch(); // ensure all members are cached
+    for (const [channelId, channel] of guild.channels.cache) {
+      if (channel.isVoiceBased()) {
+        for (const [memberId, member] of channel.members) {
           const nickname = member.nickname || member.user.username;
-          attendance.active[nickname] = { channel: vc.name, joinedAt: Date.now() };
-        });
-      });
-  });
+          attendance.active[nickname] = { channel: channel.name, joinedAt: Date.now() };
+        }
+      }
+    }
+  }
 
-  // Broadcast initial attendance
-  io.emit("update", attendance);
+  io.emit("update", attendance); // initial update
 });
 
 // Listen to voice state updates
 client.on("voiceStateUpdate", (oldState, newState) => {
-  const member = newState.member;
+  const member = newState.member || oldState.member;
   const nickname = member.nickname || member.user.username;
   const oldChannel = oldState.channel;
   const newChannel = newState.channel;
@@ -66,7 +66,6 @@ client.on("voiceStateUpdate", (oldState, newState) => {
     console.log(`📡 ${nickname} joined VC`);
   }
 
-  // Broadcast to frontend
   io.emit("update", attendance);
 });
 
@@ -74,19 +73,6 @@ client.on("voiceStateUpdate", (oldState, newState) => {
 io.on("connection", (socket) => {
   console.log("✅ Client connected");
   socket.emit("update", attendance);
-});
-
-// Export attendance as CSV
-app.get("/export/csv", (req, res) => {
-  const rows = [["User", "Channel", "Joined At"]];
-  Object.entries(attendance.active).forEach(([user, info]) => {
-    rows.push([user, info.channel, new Date(info.joinedAt).toLocaleString()]);
-  });
-
-  const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-  res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", "attachment; filename=attendance.csv");
-  res.send(csv);
 });
 
 // Start server
