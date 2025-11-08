@@ -34,7 +34,7 @@ input[type="file"] { margin-top:10px; }
 </style>
 </head>
 <body>
-<h1>🎧 Discord VC Attendance Tracker</h1>
+<h1> Discord VC Attendance Live</h1>
 <div class="container">
 
 <div class="panel">
@@ -56,8 +56,8 @@ input[type="file"] { margin-top:10px; }
 </table>
 <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
 <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-<button onclick="clearImageTable()">🧹 Clear Table</button>
-<button onclick="toggleHistoryPanel()">📜 Show Join/Leave History</button>
+<button onclick="clearImageTable()"> Clear Table</button>
+<button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
 <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
 <div id="history" style="display:none;"></div>
 </div>
@@ -186,7 +186,7 @@ async function captureVCPannel() {
 // -------------------- SEND IMAGES TO DISCORD --------------------
 async function sendImagesToDiscord() {
   if(uploadedImages.length===0) return alert("No images to send!");
-  const message = messageInput.value.trim() || "🖼️ New images uploaded!";
+  const message = messageInput.value.trim() || "Attendance Today has been uploaded!";
   await captureVCPannel();
   fetch("https://vc-attendance.onrender.com/upload-images", {
     method:"POST",
