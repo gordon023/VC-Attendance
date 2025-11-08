@@ -3,11 +3,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// ✅ CONFIG — ADD your server and voice channel IDs here
-const GUILD_ID = process.env.GUILD_ID;          // e.g. "123456789012345678"
-const VOICE_CHANNEL_ID = process.env.VOICE_CHANNEL_ID;  // e.g. "987654321098765432"
-
-const WEB_API_URL = process.env.WEB_API_URL; // e.g. https://vc-attendance.onrender.com/
+// ✅ IDs and API URL from .env
+const GUILD_ID = process.env.GUILD_ID;
+const VOICE_CHANNEL_ID = process.env.VOICE_CHANNEL_ID;
+const WEB_API_URL = process.env.WEB_API_URL;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
 const client = new Client({
   intents: [
@@ -23,25 +23,24 @@ client.once("ready", () => {
   console.log(`🎧 Tracking voice channel ID: ${VOICE_CHANNEL_ID}`);
 });
 
-client.on("voiceStateUpdate", async (oldState, newState) => {
+client.on("voiceStateUpdate", (oldState, newState) => {
   const member = newState.member || oldState.member;
   if (!member || member.user.bot) return;
 
   const user = member.displayName || member.user.username;
   const guildId = newState.guild.id;
 
-  // Only handle events from your target server and voice channel
   if (guildId !== GUILD_ID) return;
 
   const oldChannelId = oldState.channelId;
   const newChannelId = newState.channelId;
 
-  // Joined target VC
+  // Joined target voice channel
   if (newChannelId === VOICE_CHANNEL_ID && oldChannelId !== VOICE_CHANNEL_ID) {
     sendEvent({ type: "join", user, channel: newState.channel.name, guildId });
   }
 
-  // Left target VC
+  // Left target voice channel
   if (oldChannelId === VOICE_CHANNEL_ID && newChannelId !== VOICE_CHANNEL_ID) {
     sendEvent({ type: "leave", user, channel: oldState.channel.name, guildId });
   }
@@ -64,4 +63,4 @@ async function sendEvent(event) {
   }
 }
 
-client.login(process.env.BOT_TOKEN);
+client.login(BOT_TOKEN);
