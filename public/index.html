@@ -1,66 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Discord VC Attendance Tracker</title>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <style>
-    body { font-family: sans-serif; background:#0d1117; color:#e6edf3; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; }
-    h1 { color:#238636; margin:20px; }
-    .container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:90%; }
-    .panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
-    table { width:100%; border-collapse:collapse; }
-    th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
-    th { color:#238636; }
-    .joined { color:#238636; }
-    .left { color:#da3633; }
-    #history { max-height:250px; overflow-y:auto; }
-    #notification { margin-top:10px; color:#2ea043; font-weight:bold; display:none; }
-    textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
-    button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
-    button:hover { background:#2ea043; }
-    .status-icons { font-size:16px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord VC Attendance Tracker</title>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+body { font-family: sans-serif; background:#0d1117; color:#e6edf3; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; }
+h1 { color:#238636; margin:20px; }
+.container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:90%; }
+.panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
+table { width:100%; border-collapse:collapse; }
+th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
+th { color:#238636; }
+.joined { color:#238636; }
+.left { color:#da3633; }
+#history { max-height:250px; overflow-y:auto; }
+#notification { margin-top:10px; color:#2ea043; font-weight:bold; display:none; }
+textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
+button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
+button:hover { background:#2ea043; }
+.status-icons { font-size:16px; }
+</style>
 </head>
 <body>
-  <h1>🎧 Discord VC Attendance Tracker</h1>
-  <div class="container">
-    <div class="panel">
-      <h2>🟢 Active Voice Chat Members</h2>
-      <table id="active">
-        <thead>
-          <tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="panel">
-      <h2>📜 Join/Leave History</h2>
-      <div id="history"></div>
-    </div>
+<h1>🎧 Discord VC Attendance Tracker</h1>
+<div class="container">
 
-    <!-- IMAGE UPLOADER PANEL -->
-    <div class="panel">
-      <h2>🖼️ Image Uploader</h2>
-      <input type="file" id="imageInput" multiple accept="image/*">
-      <button onclick="uploadImages()">Upload to Table</button>
-      <table id="imageTable">
-        <thead>
-          <tr><th>Preview</th><th>Filename</th><th>Status</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+<div class="panel">
+<h2>🟢 Active Voice Chat Members</h2>
+<table id="active">
+<thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
 
-      <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
-      
-      <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-      <button onclick="clearImageTable()">🧹 Clear Table</button>
+<div class="panel">
+<h2>📜 Join/Leave History</h2>
+<div id="history"></div>
+</div>
 
-      <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-    </div>
-  </div>
+<div class="panel">
+<h2>🖼️ Image Uploader</h2>
+<input type="file" id="imageInput" multiple accept="image/*">
+<button onclick="uploadImages()">Upload to Table</button>
+<table id="imageTable">
+<thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+<textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+<button onclick="sendImagesToDiscord()">Send All to Discord</button>
+<button onclick="clearImageTable()">🧹 Clear Table</button>
+<div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+</div>
 
+</div>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 const socket = io();
@@ -75,34 +69,26 @@ socket.on("update", (data) => {
   updateHistory();
 });
 
-// ----------------- VC PANEL UPDATES -----------------
+// --------------- VC PANEL -----------------
 function updateActive() {
   activeBody.innerHTML = "";
   const now = new Date();
   Object.entries(attendance.active || {}).forEach(([user, info]) => {
-    const joined = new Date(info.joinedAt);
+    const joined = new Date(info.joinedAt || Date.now());
     const durationSec = Math.floor((now - joined)/1000);
     const durationText = formatDuration(durationSec);
-
-    // --- Status Icons ---
     const muteIcon = info.selfMute || info.serverMute ? "🔇" : "🎤";
     const deafIcon = info.selfDeaf || info.serverDeaf ? "🔕" : "👂";
     const statusText = `<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
-
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${user}</td>
-      <td>${info.channel}</td>
-      <td>${statusText}</td>
-      <td>${durationText}</td>
-    `;
+    tr.innerHTML = `<td>${user}</td><td>${info.channel || "Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
     activeBody.appendChild(tr);
   });
 }
 
 function updateHistory() {
   historyDiv.innerHTML = "";
-  (attendance.history || []).slice(0, 20).forEach(h => {
+  (attendance.history || []).slice(0,20).forEach(h => {
     const div = document.createElement("div");
     const time = new Date(h.time).toLocaleTimeString();
     const typeClass = h.type === "join" ? "joined" : "left";
@@ -113,28 +99,26 @@ function updateHistory() {
 }
 
 function formatDuration(sec) {
-  const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
   return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
 }
 
 setInterval(updateActive, 1000);
 
-// ---------------- IMAGE UPLOADER ----------------
+// --------------- IMAGE UPLOADER -----------------
 const imageInput = document.getElementById("imageInput");
 const imageTableBody = document.querySelector("#imageTable tbody");
 const notification = document.getElementById("notification");
 const messageInput = document.getElementById("imageMessage");
-let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]');
-
+let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
 renderImageTable();
 
-// Upload user-selected images
 function uploadImages() {
   const files = Array.from(imageInput.files);
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending" });
+      uploadedImages.push({ name:file.name, dataURL:e.target.result, status:"Pending" });
       saveAndRender();
     };
     reader.readAsDataURL(file);
@@ -142,16 +126,11 @@ function uploadImages() {
   imageInput.value = "";
 }
 
-// Save images to localStorage and render table
 function renderImageTable() {
   imageTableBody.innerHTML = "";
-  uploadedImages.forEach((img, i) => {
+  uploadedImages.forEach(img => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td>
-      <td>${img.name}</td>
-      <td>${img.status}</td>
-    `;
+    tr.innerHTML = `<td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td><td>${img.name}</td><td>${img.status}</td>`;
     imageTableBody.appendChild(tr);
   });
 }
@@ -168,44 +147,33 @@ function clearImageTable() {
   messageInput.value = "";
 }
 
-// ---------------- CAPTURE VC PANEL ----------------
+// --------------- CAPTURE VC PANEL -----------------
 async function captureVCPannel() {
-  const panel = document.querySelector(".panel:first-child"); // Active VC panel
-  const canvas = await html2canvas(panel, { backgroundColor: null });
+  const panel = document.querySelector(".panel:first-child");
+  const canvas = await html2canvas(panel);
   const dataURL = canvas.toDataURL("image/png");
-  uploadedImages.push({ name: `VC_Attendance_${Date.now()}.png`, dataURL, status: "Pending" });
+  uploadedImages.push({ name:`VC_Attendance_${Date.now()}.png`, dataURL, status:"Pending" });
   saveAndRender();
 }
 
-// ---------------- SEND IMAGES TO DISCORD ----------------
+// --------------- SEND IMAGES TO DISCORD -----------------
 async function sendImagesToDiscord() {
-  if (uploadedImages.length === 0) return alert("No images to send!");
+  if(uploadedImages.length===0) return alert("No images to send!");
   const message = messageInput.value.trim() || "🖼️ New images uploaded!";
-
-  // Ensure VC panel is captured first
   await captureVCPannel();
-
   fetch("https://vc-attendance.onrender.com/upload-images", {
-    method: "POST",
+    method:"POST",
     body: JSON.stringify({ images: uploadedImages, message }),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.success) {
-      uploadedImages.forEach(img => img.status = "Sent");
+    headers: { "Content-Type":"application/json" }
+  }).then(res=>res.json()).then(res=>{
+    if(res.success){
+      uploadedImages.forEach(img=>img.status="Sent");
       saveAndRender();
-      notification.style.display = "block";
-      setTimeout(() => {
-        clearImageTable();
-      }, 15000);
-    } else {
-      alert("Failed to send images.");
-    }
-  })
-  .catch(err => console.error(err));
+      notification.style.display="block";
+      setTimeout(()=>clearImageTable(),15000);
+    } else alert("Failed to send images.");
+  }).catch(err=>console.error(err));
 }
 </script>
-
 </body>
 </html>
