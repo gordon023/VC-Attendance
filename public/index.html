@@ -6,7 +6,79 @@
   <title>Discord VC Attendance Tracker</title>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
-    /* same styles as before, omitted for brevity */
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --text: #e6edf3;
+      --accent: #238636;
+      --danger: #da3633;
+      --border: #30363d;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: var(--accent);
+      margin-top: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 90%;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1 1 300px;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    h2 {
+      color: var(--accent);
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      color: var(--accent);
+    }
+    .joined { color: var(--accent); }
+    .left { color: var(--danger); }
+    #history {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    button {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #2ea043;
+    }
   </style>
 </head>
 <body>
@@ -15,7 +87,9 @@
     <div class="panel">
       <h2>🟢 Active Voice Chat Members</h2>
       <table id="active">
-        <thead><tr><th>User</th><th>Channel</th><th>Duration</th></tr></thead>
+        <thead>
+          <tr><th>User</th><th>Channel</th><th>Duration</th></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
@@ -25,16 +99,17 @@
     </div>
     <div class="panel">
       <h2>🏆 Leaderboards</h2>
-      <button onclick="loadLeaderboard('daily')">Daily</button>
-      <button onclick="loadLeaderboard('weekly')">Weekly</button>
-      <button onclick="loadLeaderboard('all')">All Time</button>
-      <table id="leaderboard">
-        <thead><tr><th>User</th><th>VC Time</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <button onclick="exportXLSX('daily')">⬇️ Export Daily</button>
-      <button onclick="exportXLSX('weekly')">⬇️ Export Weekly</button>
-      <button onclick="exportXLSX('all')">⬇️ Export All Time</button>
+      <div>
+        <button onclick="loadLeaderboard('daily')">Daily</button>
+        <button onclick="loadLeaderboard('weekly')">Weekly</button>
+        <table id="leaderboard">
+          <thead>
+            <tr><th>User</th><th>VC Time</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button onclick="exportXLSX()">⬇️ Export Attendance</button>
     </div>
   </div>
 
@@ -45,6 +120,7 @@
     const historyDiv = document.querySelector("#history");
     const leaderboardBody = document.querySelector("#leaderboard tbody");
 
+    // Receive live updates from server
     socket.on("update", (data) => {
       attendance = data;
       updateActive();
@@ -57,19 +133,21 @@
       for (const [user, info] of Object.entries(attendance.active || {})) {
         const joined = new Date(info.joinedAt);
         const duration = Math.floor((now - joined) / 1000);
+        const durationText = formatDuration(duration);
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${formatDuration(duration)}</td>`;
+        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
         activeBody.appendChild(tr);
       }
     }
 
     function updateHistory() {
       historyDiv.innerHTML = "";
-      (attendance.history || []).slice(0, 20).forEach(h => {
+      (attendance.history || []).slice(0, 20).forEach((h) => {
         const div = document.createElement("div");
         const time = new Date(h.time).toLocaleTimeString();
         const typeClass = h.type === "join" ? "joined" : "left";
-        div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${h.type} <b>${h.channel}</b> at ${time}`;
+        const action = h.type === "join" ? "joined" : "left";
+        div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
         historyDiv.appendChild(div);
       });
     }
@@ -79,25 +157,26 @@
         .then(res => res.json())
         .then(list => {
           leaderboardBody.innerHTML = "";
-          list.forEach(row => {
+          list.forEach((row) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `<td>${row.user}</td><td>${row.time}</td>`;
             leaderboardBody.appendChild(tr);
           });
-        });
+        }).catch(err => console.error("Leaderboard fetch failed:", err));
     }
 
-    function exportXLSX(type) {
-      window.open(`/export/xlsx/${type}`, "_blank");
+    function exportXLSX() {
+      window.open("/export/xlsx", "_blank");
     }
 
     function formatDuration(sec) {
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
       const s = sec % 60;
-      return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     }
 
+    // Update durations every second
     setInterval(updateActive, 1000);
   </script>
 </body>
