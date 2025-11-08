@@ -1,19 +1,5 @@
 {
-  "active": {
-    "Cathaleah": {
-      "channel": "Lordnine",
-      "joinedAt": "2025-11-08T04:05:00.000Z"
-    }
-  },
-  "history": [
-    {
-      "type": "join",
-      "user": "Cathaleah",
-      "channel": "Lordnine",
-      "time": "2025-11-08T04:05:00.000Z"
-    }
-  ],
-  "stats": {
-    "Cathaleah": 5400
-  }
+  "history": [],
+  "active": {},
+  "stats": {}
 }
