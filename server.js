@@ -1,68 +1,70 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import cors from "cors";
+import { Client, GatewayIntentBits } from "discord.js";
+import dotenv from "dotenv";
+
+dotenv.config(); // for DISCORD_TOKEN
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" } // allow all origins for testing
-});
+const io = new Server(server, { cors: { origin: "*" } });
 
-// In-memory attendance data
-let attendance = {
-  active: {}, // { username: { channel, joinedAt } }
-  history: [] // [{ user, channel, type, time }]
-};
-
-// Serve static frontend
+// Serve frontend
 app.use(express.static("public"));
-app.use(cors());
 
-// Leaderboard route (example)
-app.get("/leaderboard/:type", (req, res) => {
-  const list = Object.entries(attendance.active).map(([user, info]) => ({
-    user,
-    time: Math.floor((Date.now() - info.joinedAt) / 1000) // seconds
-  }));
-  res.json(list);
+// Attendance storage
+let attendance = { active: {}, history: [] };
+
+// Discord bot
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers,
+  ],
 });
 
-// Mock export XLSX route
-app.get("/export/xlsx", (req, res) => {
-  res.send("Export functionality not implemented yet");
+client.on("ready", () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
+});
+
+// Listen to voice state updates
+client.on("voiceStateUpdate", (oldState, newState) => {
+  const user = newState.member.user.username;
+  const oldChannel = oldState.channel;
+  const newChannel = newState.channel;
+  const now = Date.now();
+
+  // User left VC
+  if (oldChannel && !newChannel) {
+    delete attendance.active[user];
+    attendance.history.unshift({ user, channel: oldChannel.name, type: "left", time: now });
+    console.log(`📡 ${user} left VC`);
+  }
+
+  // User joined VC
+  if (!oldChannel && newChannel) {
+    attendance.active[user] = { channel: newChannel.name, joinedAt: now };
+    attendance.history.unshift({ user, channel: newChannel.name, type: "join", time: now });
+    console.log(`📡 ${user} joined VC`);
+  }
+
+  // Broadcast to frontend
+  io.emit("update", attendance);
 });
 
 // Socket.IO connection
 io.on("connection", (socket) => {
   console.log("✅ Client connected");
-
-  // Send current attendance immediately
   socket.emit("update", attendance);
-
-  // Example: mock join/leave events every 10 seconds
-  // Replace with actual Discord bot events
-  setInterval(() => {
-    const users = ["Alice", "Bob", "Charlie"];
-    const user = users[Math.floor(Math.random() * users.length)];
-    const joined = Math.random() > 0.5;
-
-    if (joined) {
-      attendance.active[user] = { channel: "General", joinedAt: Date.now() };
-      attendance.history.unshift({ user, channel: "General", type: "join", time: Date.now() });
-      console.log(`📡 ${user} joined VC`);
-    } else {
-      delete attendance.active[user];
-      attendance.history.unshift({ user, channel: "General", type: "left", time: Date.now() });
-      console.log(`📡 ${user} left VC`);
-    }
-
-    // Broadcast to all connected clients
-    io.emit("update", attendance);
-
-  }, 10000); // every 10 seconds
 });
 
-server.listen(3000, () => {
-  console.log("🚀 Server running on http://localhost:3000");
+// Start server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// Login to Discord
+client.login(process.env.DISCORD_TOKEN);
