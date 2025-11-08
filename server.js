@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 
-dotenv.config(); // Load BOT_TOKEN
+dotenv.config(); // for DISCORD_TOKEN
 
 const app = express();
 const server = http.createServer(app);
@@ -28,26 +28,29 @@ const client = new Client({
 client.on("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
-  // Populate currently active voice channels at startup
+  // Populate currently active VC members at startup
   for (const guild of client.guilds.cache.values()) {
-    await guild.members.fetch(); // ensure all members are cached
-    for (const [channelId, channel] of guild.channels.cache) {
+    await guild.members.fetch(); // ensure all members cached
+    for (const channel of guild.channels.cache.values()) {
       if (channel.isVoiceBased()) {
-        for (const [memberId, member] of channel.members) {
-          const nickname = member.nickname || member.user.username;
+        for (const member of channel.members.values()) {
+          const nickname = member.nickname;
+          if (!nickname) continue; // skip if no server nickname
           attendance.active[nickname] = { channel: channel.name, joinedAt: Date.now() };
         }
       }
     }
   }
 
-  io.emit("update", attendance); // initial update
+  // Broadcast initial state to frontend
+  io.emit("update", attendance);
 });
 
 // Listen to voice state updates
 client.on("voiceStateUpdate", (oldState, newState) => {
   const member = newState.member || oldState.member;
-  const nickname = member.nickname || member.user.username;
+  const nickname = member.nickname;
+  if (!nickname) return; // skip if no nickname
   const oldChannel = oldState.channel;
   const newChannel = newState.channel;
   const now = Date.now();
@@ -66,6 +69,7 @@ client.on("voiceStateUpdate", (oldState, newState) => {
     console.log(`📡 ${nickname} joined VC`);
   }
 
+  // Broadcast update to frontend
   io.emit("update", attendance);
 });
 
