@@ -91,6 +91,58 @@
     }
 
     setInterval(updateActive, 1000);
+
+    // ---------------- IMAGE UPLOADER ----------------
+const imageInput = document.getElementById("imageInput");
+const imageTableBody = document.querySelector("#imageTable tbody");
+let uploadedImages = [];
+
+function uploadImages() {
+  const files = Array.from(imageInput.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push({ file, dataURL: e.target.result, status: "Pending" });
+      renderImageTable();
+    };
+    reader.readAsDataURL(file);
+  });
+  imageInput.value = ""; // clear input after upload to table
+}
+
+function renderImageTable() {
+  imageTableBody.innerHTML = "";
+  uploadedImages.forEach((img, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td>
+      <td>${img.file.name}</td>
+      <td>${img.status}</td>
+    `;
+    imageTableBody.appendChild(tr);
+  });
+}
+
+function sendImagesToDiscord() {
+  if (uploadedImages.length === 0) return alert("No images to send!");
+  fetch("/upload-images", {
+    method: "POST",
+    body: JSON.stringify(uploadedImages.map(i => ({ name: i.file.name, dataURL: i.dataURL }))),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.success) {
+      uploadedImages.forEach(img => img.status = "Sent");
+      renderImageTable();
+      alert("Images successfully uploaded to Discord!");
+    } else {
+      alert("Failed to send images.");
+    }
+  })
+  .catch(err => console.error(err));
+}
+
   </script>
 </body>
 </html>
