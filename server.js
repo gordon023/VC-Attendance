@@ -67,4 +67,4 @@ server.listen(PORT, () => {
 });
 
 // Login to Discord
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.BOT_TOKEN);
