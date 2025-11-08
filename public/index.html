@@ -1,57 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Discord VC Attendance Tracker</title>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
-    :root {
-      --bg: #0d1117;
-      --card: #161b22;
-      --text: #e6edf3;
-      --accent: #238636;
-      --danger: #da3633;
-      --border: #30363d;
-    }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Segoe UI", sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    h1 { color: var(--accent); margin-top: 20px; }
-    .container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 90%; }
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      flex: 1 1 300px;
-      max-width: 500px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    h2 { color: var(--accent); margin-top: 0; font-size: 1.2rem; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid var(--border); padding: 6px 10px; text-align: left; }
-    th { color: var(--accent); }
-    .joined { color: var(--accent); }
-    .left { color: var(--danger); }
-    #history { max-height: 250px; overflow-y: auto; }
-    button {
-      background: var(--accent);
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    button:hover { background: #2ea043; }
+    body { font-family: sans-serif; background:#0d1117; color:#e6edf3; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; }
+    h1 { color:#238636; margin:20px; }
+    .container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:90%; }
+    .panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
+    th { color:#238636; }
+    .joined { color:#238636; }
+    .left { color:#da3633; }
+    #history { max-height:250px; overflow-y:auto; }
   </style>
 </head>
 <body>
@@ -60,9 +24,7 @@
     <div class="panel">
       <h2>🟢 Active Voice Chat Members</h2>
       <table id="active">
-        <thead>
-          <tr><th>User</th><th>Channel</th><th>Duration</th></tr>
-        </thead>
+        <thead><tr><th>User</th><th>Channel</th><th>Duration</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -73,12 +35,12 @@
   </div>
 
   <script>
-    const socket = io(); // assumes same origin
+    const socket = io();
     let attendance = {};
     const activeBody = document.querySelector("#active tbody");
     const historyDiv = document.querySelector("#history");
 
-    // Receive live updates from server
+    socket.on("connect", () => console.log("✅ Connected to server"));
     socket.on("update", (data) => {
       attendance = data;
       updateActive();
@@ -87,20 +49,20 @@
 
     function updateActive() {
       activeBody.innerHTML = "";
-      const now = Date.now();
-      for (const [nickname, info] of Object.entries(attendance.active || {})) {
+      const now = new Date();
+      Object.entries(attendance.active || {}).forEach(([user, info]) => {
         const joined = new Date(info.joinedAt);
-        const duration = Math.floor((now - joined) / 1000);
-        const durationText = formatDuration(duration);
+        const durationSec = Math.floor((now - joined)/1000);
+        const durationText = formatDuration(durationSec);
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${nickname}</td><td>${info.channel}</td><td>${durationText}</td>`;
+        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
         activeBody.appendChild(tr);
-      }
+      });
     }
 
     function updateHistory() {
       historyDiv.innerHTML = "";
-      (attendance.history || []).slice(0, 20).forEach((h) => {
+      (attendance.history || []).slice(0, 20).forEach(h => {
         const div = document.createElement("div");
         const time = new Date(h.time).toLocaleTimeString();
         const typeClass = h.type === "join" ? "joined" : "left";
@@ -111,13 +73,10 @@
     }
 
     function formatDuration(sec) {
-      const h = Math.floor(sec / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
+      const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
       return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
     }
 
-    // Update VC durations every second
     setInterval(updateActive, 1000);
   </script>
 </body>
