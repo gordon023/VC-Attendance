@@ -58,123 +58,140 @@
       <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
     </div>
   </div>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const socket = io();
+let attendance = {};
+const activeBody = document.querySelector("#active tbody");
+const historyDiv = document.querySelector("#history");
 
-  <script>
-    // ---------------- VC Attendance ----------------
-    const socket = io();
-    let attendance = {};
-    const activeBody = document.querySelector("#active tbody");
-    const historyDiv = document.querySelector("#history");
+socket.on("connect", () => console.log("✅ Connected to server"));
+socket.on("update", (data) => {
+  attendance = data;
+  updateActive();
+  updateHistory();
+});
 
-    socket.on("connect", () => console.log("✅ Connected to server"));
-    socket.on("update", (data) => {
-      attendance = data;
-      updateActive();
-      updateHistory();
-    });
+// ----------------- VC PANEL UPDATES -----------------
+function updateActive() {
+  activeBody.innerHTML = "";
+  const now = new Date();
+  Object.entries(attendance.active || {}).forEach(([user, info]) => {
+    const joined = new Date(info.joinedAt);
+    const durationSec = Math.floor((now - joined)/1000);
+    const durationText = formatDuration(durationSec);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
+    activeBody.appendChild(tr);
+  });
+}
 
-    function updateActive() {
-      activeBody.innerHTML = "";
-      const now = new Date();
-      Object.entries(attendance.active || {}).forEach(([user, info]) => {
-        const joined = new Date(info.joinedAt);
-        const durationSec = Math.floor((now - joined)/1000);
-        const durationText = formatDuration(durationSec);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
-        activeBody.appendChild(tr);
-      });
-    }
+function updateHistory() {
+  historyDiv.innerHTML = "";
+  (attendance.history || []).slice(0, 20).forEach(h => {
+    const div = document.createElement("div");
+    const time = new Date(h.time).toLocaleTimeString();
+    const typeClass = h.type === "join" ? "joined" : "left";
+    const action = h.type === "join" ? "joined" : "left";
+    div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+    historyDiv.appendChild(div);
+  });
+}
 
-    function updateHistory() {
-      historyDiv.innerHTML = "";
-      (attendance.history || []).slice(0, 20).forEach(h => {
-        const div = document.createElement("div");
-        const time = new Date(h.time).toLocaleTimeString();
-        const typeClass = h.type === "join" ? "joined" : "left";
-        const action = h.type === "join" ? "joined" : "left";
-        div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
-        historyDiv.appendChild(div);
-      });
-    }
+function formatDuration(sec) {
+  const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
 
-    function formatDuration(sec) {
-      const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
-      return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
-    }
+setInterval(updateActive, 1000);
 
-    setInterval(updateActive, 1000);
+// ---------------- IMAGE UPLOADER ----------------
+const imageInput = document.getElementById("imageInput");
+const imageTableBody = document.querySelector("#imageTable tbody");
+const notification = document.getElementById("notification");
+const messageInput = document.getElementById("imageMessage");
+let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
 
-    // ---------------- IMAGE UPLOADER ----------------
-    const imageInput = document.getElementById("imageInput");
-    const imageTableBody = document.querySelector("#imageTable tbody");
-    const notification = document.getElementById("notification");
-    const messageInput = document.getElementById("imageMessage");
-    let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
+renderImageTable();
 
-    renderImageTable();
-
-    function uploadImages() {
-      const files = Array.from(imageInput.files);
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending" });
-          saveAndRender();
-        };
-        reader.readAsDataURL(file);
-      });
-      imageInput.value = "";
-    }
-
-    function renderImageTable() {
-      imageTableBody.innerHTML = "";
-      uploadedImages.forEach((img, i) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td>
-          <td>${img.name}</td>
-          <td>${img.status}</td>
-        `;
-        imageTableBody.appendChild(tr);
-      });
-    }
-
-    function saveAndRender() {
-      localStorage.setItem("uploadedImages", JSON.stringify(uploadedImages));
-      renderImageTable();
-    }
-
-    function clearImageTable() {
-      uploadedImages = [];
+// Upload user-selected images
+function uploadImages() {
+  const files = Array.from(imageInput.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending" });
       saveAndRender();
-      notification.style.display = "none";
-      messageInput.value = "";
-    }
+    };
+    reader.readAsDataURL(file);
+  });
+  imageInput.value = "";
+}
 
-    function sendImagesToDiscord() {
-      if (uploadedImages.length === 0) return alert("No images to send!");
-      const message = messageInput.value.trim() || "🖼️ New images uploaded!";
-      fetch("https://vc-attendance.onrender.com/upload-images", {
-        method: "POST",
-        body: JSON.stringify({ images: uploadedImages, message }),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          uploadedImages.forEach(img => img.status = "Sent");
-          saveAndRender();
-          notification.style.display = "block";
-          setTimeout(() => {
-            clearImageTable();
-          }, 15000);
-        } else {
-          alert("Failed to send images.");
-        }
-      })
-      .catch(err => console.error(err));
+// Save images to localStorage and render table
+function renderImageTable() {
+  imageTableBody.innerHTML = "";
+  uploadedImages.forEach((img, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td>
+      <td>${img.name}</td>
+      <td>${img.status}</td>
+    `;
+    imageTableBody.appendChild(tr);
+  });
+}
+
+function saveAndRender() {
+  localStorage.setItem("uploadedImages", JSON.stringify(uploadedImages));
+  renderImageTable();
+}
+
+function clearImageTable() {
+  uploadedImages = [];
+  saveAndRender();
+  notification.style.display = "none";
+  messageInput.value = "";
+}
+
+// ---------------- CAPTURE VC PANEL ----------------
+async function captureVCPannel() {
+  const panel = document.querySelector(".panel:first-child"); // Active VC panel
+  const canvas = await html2canvas(panel);
+  const dataURL = canvas.toDataURL("image/png");
+  uploadedImages.push({ name: `VC_Attendance_${Date.now()}.png`, dataURL, status: "Pending" });
+  saveAndRender();
+}
+
+// ---------------- SEND IMAGES TO DISCORD ----------------
+async function sendImagesToDiscord() {
+  if (uploadedImages.length === 0) return alert("No images to send!");
+  const message = messageInput.value.trim() || "🖼️ New images uploaded!";
+
+  // Ensure VC panel is captured first
+  await captureVCPannel();
+
+  fetch("https://vc-attendance.onrender.com/upload-images", {
+    method: "POST",
+    body: JSON.stringify({ images: uploadedImages, message }),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.success) {
+      uploadedImages.forEach(img => img.status = "Sent");
+      saveAndRender();
+      notification.style.display = "block";
+      setTimeout(() => {
+        clearImageTable();
+      }, 15000);
+    } else {
+      alert("Failed to send images.");
     }
-  </script>
+  })
+  .catch(err => console.error(err));
+}
+</script>
+
 </body>
 </html>
