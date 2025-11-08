@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Discord VC Attendance Tracker</title>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
@@ -16,7 +16,8 @@
     .joined { color:#238636; }
     .left { color:#da3633; }
     #history { max-height:250px; overflow-y:auto; }
-    #notification { margin-top:10px; color:#2ea043; font-weight:bold; display:none; }
+    #notification { margin-top:10px; color:#2ea043; font-weight:bold; display:none; text-align:center; }
+    .progress-bar { height:6px; background:#238636; border-radius:3px; margin-top:4px; transition:width 0.3s ease; }
   </style>
 </head>
 <body>
@@ -29,18 +30,19 @@
         <tbody></tbody>
       </table>
     </div>
+
     <div class="panel">
       <h2>📜 Join/Leave History</h2>
       <div id="history"></div>
     </div>
+
     <div class="panel">
       <h2>🖼️ Image Uploader</h2>
       <input type="file" id="imageInput" multiple accept="image/*">
       <button onclick="uploadImages()">Upload to Table</button>
+      <button onclick="clearImageTable()">🧹 Clear Table</button>
       <table id="imageTable">
-        <thead>
-          <tr><th>Preview</th><th>Filename</th><th>Status</th></tr>
-        </thead>
+        <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
         <tbody></tbody>
       </table>
       <button onclick="sendImagesToDiscord()">Send All to Discord</button>
@@ -49,7 +51,7 @@
   </div>
 
   <script>
-    // ---------------- VC Attendance ----------------
+    // ---------- VC ATTENDANCE ----------
     const socket = io();
     let attendance = {};
     const activeBody = document.querySelector("#active tbody");
@@ -91,24 +93,22 @@
       const h = Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
       return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
     }
-
     setInterval(updateActive, 1000);
 
-    // ---------------- IMAGE UPLOADER ----------------
+    // ---------- IMAGE UPLOADER ----------
     const imageInput = document.getElementById("imageInput");
     const imageTableBody = document.querySelector("#imageTable tbody");
     const notification = document.getElementById("notification");
     let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
 
-    // Render images from localStorage on page load
     renderImageTable();
 
     function uploadImages() {
       const files = Array.from(imageInput.files);
       files.forEach(file => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending" });
+        reader.onload = e => {
+          uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending", progress: 0 });
           saveAndRender();
         };
         reader.readAsDataURL(file);
@@ -122,7 +122,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td>
-          <td>${img.name}</td>
+          <td>${img.name}<div class="progress-bar" style="width:${img.progress || 0}%;"></div></td>
           <td>${img.status}</td>
         `;
         imageTableBody.appendChild(tr);
@@ -134,29 +134,42 @@
       renderImageTable();
     }
 
+    function clearImageTable() {
+      if (confirm("Are you sure you want to clear all images?")) {
+        uploadedImages = [];
+        saveAndRender();
+      }
+    }
+
     function sendImagesToDiscord() {
       if (uploadedImages.length === 0) return alert("No images to send!");
-      fetch("https://vc-attendance.onrender.com/upload-images", {
+      uploadedImages.forEach(img => (img.status = "Uploading..."));
+      saveAndRender();
+
+      const total = uploadedImages.length;
+      let uploaded = 0;
+
+      fetch("/upload-images", {
         method: "POST",
         body: JSON.stringify(uploadedImages),
         headers: { "Content-Type": "application/json" }
       })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          uploadedImages.forEach(img => img.status = "Sent");
-          saveAndRender();
-          notification.style.display = "block";
-          setTimeout(() => {
-            uploadedImages = [];
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) {
+            uploadedImages.forEach(img => img.status = "Sent");
             saveAndRender();
-            notification.style.display = "none";
-          }, 15000);
-        } else {
-          alert("Failed to send images.");
-        }
-      })
-      .catch(err => console.error(err));
+            notification.style.display = "block";
+            setTimeout(() => {
+              uploadedImages = [];
+              saveAndRender();
+              notification.style.display = "none";
+            }, 15000);
+          } else {
+            alert("Failed to send images: " + (res.error || "Unknown error"));
+          }
+        })
+        .catch(err => console.error("Upload failed:", err));
     }
   </script>
 </body>
