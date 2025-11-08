@@ -3,135 +3,182 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎙️ Discord VC Attendance Tracker</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <title>Discord VC Attendance Tracker</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --text: #e6edf3;
+      --accent: #238636;
+      --danger: #da3633;
+      --border: #30363d;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: var(--accent);
+      margin-top: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 90%;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1 1 300px;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    h2 {
+      color: var(--accent);
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      color: var(--accent);
+    }
+    .joined { color: var(--accent); }
+    .left { color: var(--danger); }
+    #history {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    button {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #2ea043;
+    }
+  </style>
 </head>
-
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center py-8">
-  <div class="w-full max-w-6xl bg-gray-800 p-6 rounded-2xl shadow-lg">
-    <h1 class="text-3xl font-bold mb-6 text-center">🎙️ Discord VC Attendance Tracker</h1>
-
-    <!-- Active Users -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <h2 class="text-xl font-semibold mb-2">🟢 Currently Active</h2>
-        <ul id="activeList" class="space-y-2"></ul>
-      </div>
-
-      <div>
-        <h2 class="text-xl font-semibold mb-2">🕒 Join / Leave History</h2>
-        <ul id="historyList" class="space-y-1 text-sm"></ul>
-      </div>
+<body>
+  <h1>🎧 Discord VC Attendance Tracker</h1>
+  <div class="container">
+    <div class="panel">
+      <h2>🟢 Active Voice Chat Members</h2>
+      <table id="active">
+        <thead>
+          <tr><th>User</th><th>Channel</th><th>Duration</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
-
-    <!-- Total Time -->
-    <h2 class="text-xl font-semibold mt-8 mb-3">🏆 Total VC Time</h2>
-    <ul id="totalList" class="space-y-1 text-sm"></ul>
-
-    <!-- Leaderboards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-      <div>
-        <h2 class="text-xl font-semibold mb-2">📅 Daily Leaderboard</h2>
-        <ul id="dailyBoard" class="space-y-1 text-sm"></ul>
-      </div>
-
-      <div>
-        <h2 class="text-xl font-semibold mb-2">📆 Weekly Leaderboard</h2>
-        <ul id="weeklyBoard" class="space-y-1 text-sm"></ul>
-      </div>
+    <div class="panel">
+      <h2>📜 Join/Leave History</h2>
+      <div id="history"></div>
     </div>
-
-    <!-- Export -->
-    <div class="text-center mt-10">
-      <button id="exportBtn" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
-        ⬇️ Export Attendance (XLSX)
-      </button>
+    <div class="panel">
+      <h2>🏆 Leaderboards</h2>
+      <div>
+        <button onclick="loadLeaderboard('daily')">Daily</button>
+        <button onclick="loadLeaderboard('weekly')">Weekly</button>
+        <table id="leaderboard">
+          <thead>
+            <tr><th>User</th><th>VC Time</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button onclick="exportXLSX()">⬇️ Export Attendance</button>
     </div>
   </div>
 
   <script>
     const socket = io();
-    const activeList = document.getElementById("activeList");
-    const historyList = document.getElementById("historyList");
-    const totalList = document.getElementById("totalList");
-    const dailyBoard = document.getElementById("dailyBoard");
-    const weeklyBoard = document.getElementById("weeklyBoard");
-    const exportBtn = document.getElementById("exportBtn");
-
     let attendance = {};
+    const activeBody = document.querySelector("#active tbody");
+    const historyDiv = document.querySelector("#history");
+    const leaderboardBody = document.querySelector("#leaderboard tbody");
 
-    socket.on("update", data => {
+    socket.on("update", (data) => {
       attendance = data;
-      render();
+      updateActive();
+      updateHistory();
     });
 
-    function formatTime(seconds) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      return `${h}h ${m}m ${s}s`;
-    }
-
-    function render() {
+    function updateActive() {
+      activeBody.innerHTML = "";
       const now = new Date();
-
-      // Active users
-      activeList.innerHTML = "";
       for (const [user, info] of Object.entries(attendance.active || {})) {
-        const joinedAt = new Date(info.joinedAt);
-        const seconds = Math.floor((now - joinedAt) / 1000);
-        const li = document.createElement("li");
-        li.className = "p-2 bg-gray-700 rounded-lg flex justify-between";
-        li.textContent = `${user} (${info.channel}) — ${formatTime(seconds)} active`;
-        activeList.appendChild(li);
+        const joined = new Date(info.joinedAt);
+        const duration = Math.floor((now - joined) / 1000);
+        const durationText = formatDuration(duration);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
+        activeBody.appendChild(tr);
       }
+    }
 
-      // History
-      historyList.innerHTML = "";
-      (attendance.history || []).slice(0, 10).forEach(e => {
-        const li = document.createElement("li");
-        const action = e.type === "join" ? "🟢 joined" : "🔴 left";
-        li.textContent = `${e.user} ${action} ${e.channel} at ${new Date(e.time).toLocaleTimeString()}`;
-        historyList.appendChild(li);
-      });
-
-      // Total time leaderboard
-      totalList.innerHTML = "";
-      const sorted = Object.entries(attendance.stats || {}).sort((a, b) => b[1] - a[1]);
-      sorted.forEach(([user, seconds]) => {
-        const li = document.createElement("li");
-        li.textContent = `${user}: ${formatTime(seconds)}`;
-        totalList.appendChild(li);
+    function updateHistory() {
+      historyDiv.innerHTML = "";
+      (attendance.history || []).slice(0, 20).forEach((h) => {
+        const div = document.createElement("div");
+        const time = new Date(h.time).toLocaleTimeString();
+        const typeClass = h.type === "join" ? "joined" : "left";
+        const action = h.type === "join" ? "joined" : "left";
+        div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+        historyDiv.appendChild(div);
       });
     }
 
-    // Live timer
-    setInterval(render, 1000);
-
-    // Leaderboard fetchers
-    async function updateLeaderboards() {
-      const [daily, weekly] = await Promise.all([
-        fetch("/leaderboard/daily").then(r => r.json()).catch(() => []),
-        fetch("/leaderboard/weekly").then(r => r.json()).catch(() => []),
-      ]);
-
-      dailyBoard.innerHTML = daily.length
-        ? daily.map((u, i) => `<li>${i + 1}. ${u.user} — ${u.time}</li>`).join("")
-        : "<li>No data</li>";
-
-      weeklyBoard.innerHTML = weekly.length
-        ? weekly.map((u, i) => `<li>${i + 1}. ${u.user} — ${u.time}</li>`).join("")
-        : "<li>No data</li>";
+    function loadLeaderboard(type) {
+      fetch(`/leaderboard/${type}`)
+        .then(res => res.json())
+        .then(list => {
+          leaderboardBody.innerHTML = "";
+          list.forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${row.user}</td><td>${row.time}</td>`;
+            leaderboardBody.appendChild(tr);
+          });
+        });
     }
 
-    setInterval(updateLeaderboards, 10000);
-    updateLeaderboards();
+    function exportXLSX() {
+      window.open("/export/xlsx", "_blank");
+    }
 
-    // Export XLSX
-    exportBtn.addEventListener("click", () => {
-      window.location.href = "/export/xlsx";
-    });
+    function formatDuration(sec) {
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return `${h.toString().padStart(2, "0")}:${m
+        .toString()
+        .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    }
+
+    // Live duration updates every second
+    setInterval(updateActive, 1000);
   </script>
 </body>
 </html>
