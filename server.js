@@ -87,45 +87,30 @@ io.on("connection", (socket) => {
 // ====== IMAGE UPLOAD TO DISCORD WEBHOOK ======
 app.post("/upload-images", async (req, res) => {
   const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
-  const images = req.body;
+  const { images, message } = req.body;
 
-  if (!DISCORD_WEBHOOK_URL) {
-    return res.status(500).json({ success: false, error: "Webhook URL not configured" });
-  }
-  if (!images || !Array.isArray(images) || images.length === 0) {
+  if (!images || !Array.isArray(images) || images.length === 0)
     return res.status(400).json({ success: false, error: "No images provided" });
-  }
 
   try {
     const formData = new FormData();
-
     for (const [i, img] of images.entries()) {
       const base64 = img.dataURL.split(",")[1];
       const buffer = Buffer.from(base64, "base64");
       const blob = new Blob([buffer], { type: "image/png" });
       formData.append(`files[${i}]`, blob, img.name);
     }
+    formData.append("content", message || "🖼️ New images uploaded!");
 
-    formData.append("content", "🖼️ New images uploaded from the VC Attendance dashboard!");
-
-    const response = await fetch(DISCORD_WEBHOOK_URL, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("❌ Discord webhook error:", errText);
-      return res.status(500).json({ success: false, error: errText });
-    }
-
-    console.log("✅ Images successfully uploaded to Discord");
+    const response = await fetch(DISCORD_WEBHOOK_URL, { method: "POST", body: formData });
+    if (!response.ok) throw new Error(await response.text());
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Upload error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 // ====== START SERVER ======
 const PORT = process.env.PORT || 3000;
