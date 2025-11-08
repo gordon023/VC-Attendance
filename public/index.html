@@ -17,15 +17,24 @@ th { color:#238636; }
 .left { color:#da3633; }
 #history { max-height:250px; overflow-y:auto; }
 
-/* ---------- SMALLER JOIN/LEAVE HISTORY PANEL ---------- */
-.panel:nth-child(2) {
+/* ---------- SMALLER & DIMMER JOIN/LEAVE HISTORY PANEL ---------- */
+.panel.history-panel {
   flex: 1 1 200px;  /* smaller base width */
   max-width: 300px; /* smaller max width */
   padding: 10px;    /* reduce padding */
+  background:#12161c; /* slightly darker */
+  opacity:0.7;       /* dimmed */
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+.panel.history-panel.hidden {
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
 }
 #history {
   max-height: 150px; /* reduce height */
-  font-size: 0.9em;  /* slightly smaller text */
+  font-size: 0.85em;  /* slightly smaller text */
+  color: #c0c0c0;     /* lighter color for subtlety */
 }
 
 /* ------------------------------------------------------- */
@@ -35,6 +44,9 @@ textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1p
 button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
 button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
+
+/* Show History button style */
+#toggleHistoryBtn { margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -49,11 +61,7 @@ button:hover { background:#2ea043; }
 </table>
 </div>
 
-<div class="panel">
-<h2>📜 Join/Leave History</h2>
-<div id="history"></div>
-</div>
-
+<!-- ---------------- IMAGE UPLOADER PANEL FIRST ---------------- -->
 <div class="panel">
 <h2>🖼️ Image Uploader</h2>
 <input type="file" id="imageInput" multiple accept="image/*">
@@ -68,6 +76,12 @@ button:hover { background:#2ea043; }
 <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
 </div>
 
+<!-- ---------------- SMALLER DIMMED JOIN/LEAVE HISTORY PANEL ---------------- -->
+<div class="panel history-panel hidden" id="historyPanel">
+<button id="toggleHistoryBtn" onclick="toggleHistory()">📜 Show History</button>
+<div id="history"></div>
+</div>
+
 </div>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
@@ -75,6 +89,8 @@ const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
+const historyPanel = document.getElementById("historyPanel");
+const toggleBtn = document.getElementById("toggleHistoryBtn");
 
 socket.on("connect", () => console.log("✅ Connected to server"));
 socket.on("update", (data) => {
@@ -110,6 +126,11 @@ function updateHistory() {
     div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
     historyDiv.appendChild(div);
   });
+}
+
+function toggleHistory() {
+  historyPanel.classList.toggle("hidden");
+  toggleBtn.innerText = historyPanel.classList.contains("hidden") ? "📜 Show History" : "📜 Hide History";
 }
 
 function formatDuration(sec) {
