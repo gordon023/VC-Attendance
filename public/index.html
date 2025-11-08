@@ -32,6 +32,19 @@
       <h2>📜 Join/Leave History</h2>
       <div id="history"></div>
     </div>
+    <div class="panel">
+  <h2>🖼️ Image Uploader</h2>
+  <input type="file" id="imageInput" multiple accept="image/*">
+  <button onclick="uploadImages()">Upload to Table</button>
+  <table id="imageTable">
+    <thead>
+      <tr><th>Preview</th><th>Filename</th><th>Status</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+</div>
+
   </div>
 
   <script>
