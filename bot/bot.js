@@ -17,28 +17,31 @@ client.once("ready", () => {
 });
 
 client.on("voiceStateUpdate", (oldState, newState) => {
-  const user = newState.member.user.username;
+  const member = newState.member || oldState.member;
+  if (!member || member.user.bot) return;
+
+  const user = member.displayName || member.user.username;
   const guildId = newState.guild.id;
-  const channel = newState.channel ? newState.channel.name : "none";
+  const newChannel = newState.channel ? newState.channel.name : null;
+  const oldChannel = oldState.channel ? oldState.channel.name : null;
 
   if (!oldState.channelId && newState.channelId) {
-    // Joined voice
-    sendEvent({ type: "join", user, channel, guildId });
+    sendEvent({ type: "join", user, channel: newChannel, guildId });
   } else if (oldState.channelId && !newState.channelId) {
-    // Left voice
-    sendEvent({ type: "leave", user, channel: oldState.channel.name, guildId });
+    sendEvent({ type: "leave", user, channel: oldChannel, guildId });
   }
 });
 
 async function sendEvent(event) {
   try {
-    await fetch("http://localhost:3000/voice-event", {
+    await fetch(process.env.WEB_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event)
     });
+    console.log(`📡 Sent ${event.type} event for ${event.user}`);
   } catch (err) {
-    console.error("Failed to send event:", err.message);
+    console.error("❌ Failed to send event:", err.message);
   }
 }
 
