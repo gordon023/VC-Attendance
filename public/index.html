@@ -24,17 +24,8 @@
       flex-direction: column;
       align-items: center;
     }
-    h1 {
-      color: var(--accent);
-      margin-top: 20px;
-    }
-    .container {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      justify-content: center;
-      width: 90%;
-    }
+    h1 { color: var(--accent); margin-top: 20px; }
+    .container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 90%; }
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
@@ -44,29 +35,13 @@
       max-width: 500px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    h2 {
-      color: var(--accent);
-      margin-top: 0;
-      font-size: 1.2rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      border-bottom: 1px solid var(--border);
-      padding: 6px 10px;
-      text-align: left;
-    }
-    th {
-      color: var(--accent);
-    }
+    h2 { color: var(--accent); margin-top: 0; font-size: 1.2rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+    th { color: var(--accent); }
     .joined { color: var(--accent); }
     .left { color: var(--danger); }
-    #history {
-      max-height: 250px;
-      overflow-y: auto;
-    }
+    #history { max-height: 250px; overflow-y: auto; }
     button {
       background: var(--accent);
       border: none;
@@ -76,9 +51,7 @@
       cursor: pointer;
       margin-top: 10px;
     }
-    button:hover {
-      background: #2ea043;
-    }
+    button:hover { background: #2ea043; }
   </style>
 </head>
 <body>
@@ -97,30 +70,15 @@
       <h2>📜 Join/Leave History</h2>
       <div id="history"></div>
     </div>
-    <div class="panel">
-      <h2>🏆 Leaderboards</h2>
-      <div>
-        <button onclick="loadLeaderboard('daily')">Daily</button>
-        <button onclick="loadLeaderboard('weekly')">Weekly</button>
-        <table id="leaderboard">
-          <thead>
-            <tr><th>User</th><th>VC Time</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <button onclick="exportCSV()">⬇️ Export Attendance CSV</button>
-    </div>
   </div>
 
   <script>
-    const socket = io("https://vc-attendance.onrender.com/"); // Change to your server URL
+    const socket = io(); // assumes same origin
     let attendance = {};
     const activeBody = document.querySelector("#active tbody");
     const historyDiv = document.querySelector("#history");
-    const leaderboardBody = document.querySelector("#leaderboard tbody");
 
-    socket.on("connect", () => console.log("✅ Connected to server"));
+    // Receive live updates from server
     socket.on("update", (data) => {
       attendance = data;
       updateActive();
@@ -129,20 +87,20 @@
 
     function updateActive() {
       activeBody.innerHTML = "";
-      const now = new Date();
-      for (const [user, info] of Object.entries(attendance.active || {})) {
+      const now = Date.now();
+      for (const [nickname, info] of Object.entries(attendance.active || {})) {
         const joined = new Date(info.joinedAt);
         const duration = Math.floor((now - joined) / 1000);
         const durationText = formatDuration(duration);
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${user}</td><td>${info.channel}</td><td>${durationText}</td>`;
+        tr.innerHTML = `<td>${nickname}</td><td>${info.channel}</td><td>${durationText}</td>`;
         activeBody.appendChild(tr);
       }
     }
 
     function updateHistory() {
       historyDiv.innerHTML = "";
-      (attendance.history || []).slice(0, 20).forEach(h => {
+      (attendance.history || []).slice(0, 20).forEach((h) => {
         const div = document.createElement("div");
         const time = new Date(h.time).toLocaleTimeString();
         const typeClass = h.type === "join" ? "joined" : "left";
@@ -152,23 +110,6 @@
       });
     }
 
-    function loadLeaderboard(type) {
-      fetch(`/leaderboard/${type}`)
-        .then(res => res.json())
-        .then(list => {
-          leaderboardBody.innerHTML = "";
-          list.forEach(row => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${row.user}</td><td>${row.time}</td>`;
-            leaderboardBody.appendChild(tr);
-          });
-        }).catch(err => console.error("Leaderboard fetch failed:", err));
-    }
-
-    function exportCSV() {
-      window.open("/export/csv", "_blank");
-    }
-
     function formatDuration(sec) {
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
@@ -176,6 +117,7 @@
       return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
     }
 
+    // Update VC durations every second
     setInterval(updateActive, 1000);
   </script>
 </body>
