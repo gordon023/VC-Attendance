@@ -9,44 +9,21 @@
 body { font-family: sans-serif; background:#0d1117; color:#e6edf3; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; }
 h1 { color:#238636; margin:20px; }
 .container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:90%; }
+
 .panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
 th { color:#238636; }
 .joined { color:#238636; }
 .left { color:#da3633; }
-#history { max-height:250px; overflow-y:auto; }
-
-/* ---------- SMALLER & DIMMER JOIN/LEAVE HISTORY PANEL ---------- */
-.panel.history-panel {
-  flex: 1 1 200px;  /* smaller base width */
-  max-width: 300px; /* smaller max width */
-  padding: 10px;    /* reduce padding */
-  background:#12161c; /* slightly darker */
-  opacity:0.7;       /* dimmed */
-  transition: max-height 0.3s ease, opacity 0.3s ease;
-}
-.panel.history-panel.hidden {
-  max-height:0;
-  opacity:0;
-  overflow:hidden;
-}
-#history {
-  max-height: 150px; /* reduce height */
-  font-size: 0.85em;  /* slightly smaller text */
-  color: #c0c0c0;     /* lighter color for subtlety */
-}
-
-/* ------------------------------------------------------- */
-
+#history { max-height:200px; overflow-y:auto; margin-top:10px; display:none; }
 #notification { margin-top:10px; color:#2ea043; font-weight:bold; display:none; }
+.toast { color:#f0ad4e; font-weight:bold; margin-bottom:10px; display:none; }
+
 textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
 button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
 button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
-
-/* Show History button style */
-#toggleHistoryBtn { margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -55,13 +32,13 @@ button:hover { background:#2ea043; }
 
 <div class="panel">
 <h2>🟢 Active Voice Chat Members</h2>
+<div id="toast" class="toast"></div>
 <table id="active">
 <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
 
-<!-- ---------------- IMAGE UPLOADER PANEL FIRST ---------------- -->
 <div class="panel">
 <h2>🖼️ Image Uploader</h2>
 <input type="file" id="imageInput" multiple accept="image/*">
@@ -73,13 +50,9 @@ button:hover { background:#2ea043; }
 <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
 <button onclick="sendImagesToDiscord()">Send All to Discord</button>
 <button onclick="clearImageTable()">🧹 Clear Table</button>
-<div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-</div>
-
-<!-- ---------------- SMALLER DIMMED JOIN/LEAVE HISTORY PANEL ---------------- -->
-<div class="panel history-panel hidden" id="historyPanel">
-<button id="toggleHistoryBtn" onclick="toggleHistory()">📜 Show History</button>
+<button onclick="toggleHistory()">📜 History</button>
 <div id="history"></div>
+<div id="notification">✅ Images successfully uploaded! Clearing table...</div>
 </div>
 
 </div>
@@ -89,14 +62,15 @@ const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
-const historyPanel = document.getElementById("historyPanel");
-const toggleBtn = document.getElementById("toggleHistoryBtn");
+const toastDiv = document.getElementById("toast");
 
 socket.on("connect", () => console.log("✅ Connected to server"));
 socket.on("update", (data) => {
+  const oldActive = JSON.parse(JSON.stringify(attendance.active || {}));
   attendance = data;
   updateActive();
   updateHistory();
+  showToastChanges(oldActive, attendance.active);
 });
 
 // --------------- VC PANEL -----------------
@@ -128,9 +102,22 @@ function updateHistory() {
   });
 }
 
-function toggleHistory() {
-  historyPanel.classList.toggle("hidden");
-  toggleBtn.innerText = historyPanel.classList.contains("hidden") ? "📜 Show History" : "📜 Hide History";
+function showToastChanges(oldActive, newActive) {
+  const now = Date.now();
+  let message = "";
+  // Detect joins
+  Object.keys(newActive).forEach(user => {
+    if (!oldActive[user]) message += `🟢 ${user} joined VC\n`;
+  });
+  // Detect leaves
+  Object.keys(oldActive).forEach(user => {
+    if (!newActive[user]) message += `🔴 ${user} left VC\n`;
+  });
+  if (message) {
+    toastDiv.innerText = message.trim();
+    toastDiv.style.display = "block";
+    setTimeout(() => toastDiv.style.display = "none", 20000);
+  }
 }
 
 function formatDuration(sec) {
@@ -208,6 +195,15 @@ async function sendImagesToDiscord() {
       setTimeout(()=>clearImageTable(),15000);
     } else alert("Failed to send images.");
   }).catch(err=>console.error(err));
+}
+
+// --------------- TOGGLE HISTORY -----------------
+function toggleHistory() {
+  if (historyDiv.style.display === "none") {
+    historyDiv.style.display = "block";
+  } else {
+    historyDiv.style.display = "none";
+  }
 }
 </script>
 </body>
