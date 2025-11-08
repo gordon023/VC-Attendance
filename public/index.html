@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZYg - Discord VC Attendance Tracker</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
+/* ------------------ GENERAL ------------------ */
 body { 
   font-family: 'Segoe UI', sans-serif; 
   background:#0d1117; 
@@ -16,25 +18,56 @@ body {
   flex-direction:column; 
   align-items:center; 
 }
-header {
-  width:100%;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  position:relative;
-  padding:10px 0;
+h1 { 
+  color:#238636; 
+  margin:20px 0; 
+  text-align:center;
+  word-break: break-word;
 }
-h1 { color:#238636; margin:0; text-align:center; font-size:1.5em; flex:1; }
+
+/* ------------------ HEADER ------------------ */
+header {
+  width: 100%;
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  padding: 10px 20px;
+  box-sizing: border-box;
+}
 .admin-controls {
-  position:absolute;
-  top:10px;
-  right:10px;
   display:flex;
   align-items:center;
   gap:10px;
+  flex-wrap: nowrap;
 }
-.container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:95%; max-width:1200px; }
-.panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; }
+.admin-controls input, .admin-controls button {
+  padding:6px 10px;
+  border-radius:6px;
+  border:none;
+  font-size:0.9em;
+}
+.admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
+
+/* ------------------ CONTAINER ------------------ */
+.container { 
+  display:flex; 
+  flex-wrap:wrap; 
+  gap:20px; 
+  justify-content:center; 
+  width:95%; 
+  box-sizing:border-box;
+}
+
+/* ------------------ PANEL ------------------ */
+.panel { 
+  background:#161b22; 
+  border:1px solid #30363d; 
+  border-radius:12px; 
+  padding:20px; 
+  flex:1 1 300px; 
+  max-width:500px; 
+  box-sizing:border-box;
+}
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
 th { color:#238636; }
@@ -47,17 +80,22 @@ button { background:#238636; color:#fff; border:none; border-radius:6px; padding
 button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
-input[type="password"] { padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#e6edf3; width:120px; }
-@media screen and (max-width:600px){
-  .panel { flex:1 1 90%; max-width:90%; }
-  h1 { font-size:1.2em; }
+
+/* ------------------ RESPONSIVE ------------------ */
+@media(max-width:600px){
+  .container{flex-direction:column; align-items:center;}
+  header{flex-direction:column; gap:10px;}
+  .admin-controls{justify-content:center;}
+  .panel{max-width:95%;}
 }
 </style>
 </head>
 <body>
+
 <header>
   <h1>ZYg - Discord VC Attendance Live</h1>
   <div class="admin-controls">
+    <span id="adminStatus" style="display:none; font-weight:bold; color:#2ea043;">Admin Logged In</span>
     <button id="adminBtn">Admin Login</button>
     <input type="password" id="adminPassword" placeholder="Password" style="display:none;">
     <button id="logoutBtn" style="display:none;">Logout</button>
@@ -66,55 +104,40 @@ input[type="password"] { padding:6px; border-radius:6px; border:1px solid #30363
 
 <div class="container">
 
-<div class="panel" id="vcPanel">
-<h2>🟢 Active Voice Chat Members</h2>
-<div id="vcAlert"></div>
-<table id="active">
-<thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
-<tbody></tbody>
-</table>
+  <div class="panel" id="vcPanel">
+    <h2>🟢 Active Voice Chat Members</h2>
+    <div id="vcAlert"></div>
+    <table id="active">
+      <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="imagePanel" style="display:none;">
+    <h2>🖼️ Image Uploader</h2>
+    <input type="file" id="imageInput" multiple accept="image/*">
+    <button onclick="uploadImages()">Upload to Table</button>
+    <table id="imageTable">
+      <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+    <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+    <button onclick="clearImageTable()"> Clear Table</button>
+    <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
+    <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+    <div id="history" style="display:none;"></div>
+  </div>
+
 </div>
 
-<div class="panel" id="imagePanel" style="display:none;">
-<h2>🖼️ Image Uploader</h2>
-<input type="file" id="imageInput" multiple accept="image/*">
-<button onclick="uploadImages()">Upload to Table</button>
-<table id="imageTable">
-<thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-<tbody></tbody>
-</table>
-<textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
-<button onclick="sendImagesToDiscord()">Send All to Discord</button>
-<button onclick="clearImageTable()"> Clear Table</button>
-<button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
-<div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-<div id="history" style="display:none;"></div>
-</div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
+/* -------------------- SOCKET.IO -------------------- */
 const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.querySelector("#history");
 const vcAlert = document.getElementById("vcAlert");
-
-// -------------------- SOCKET.IO --------------------
-socket.on("connect", () => console.log("✅ Connected to server"));
-socket.on("update", (data) => {
-  const oldHistory = attendance.history || [];
-  attendance = data;
-  updateActive();
-  updateHistory();
-
-  const last = attendance.history[0];
-  if(last && (!oldHistory[0] || last.time !== oldHistory[0].time)) {
-    const typeText = last.type === "join" ? "joined" : "left";
-    showVCAlert(`${last.user} ${typeText} ${last.channel}`, last.type);
-  }
-});
 
 // -------------------- VC ALERT --------------------
 function showVCAlert(message, type) {
@@ -160,7 +183,21 @@ function formatDuration(sec) {
 
 setInterval(updateActive, 1000);
 
-// -------------------- IMAGE UPLOADER --------------------
+socket.on("connect", () => console.log("✅ Connected to server"));
+socket.on("update", (data) => {
+  const oldHistory = attendance.history || [];
+  attendance = data;
+  updateActive();
+  updateHistory();
+
+  const last = attendance.history[0];
+  if(last && (!oldHistory[0] || last.time !== oldHistory[0].time)) {
+    const typeText = last.type === "join" ? "joined" : "left";
+    showVCAlert(`${last.user} ${typeText} ${last.channel}`, last.type);
+  }
+});
+
+/* -------------------- IMAGE UPLOADER -------------------- */
 const imageInput = document.getElementById("imageInput");
 const imageTableBody = document.querySelector("#imageTable tbody");
 const notification = document.getElementById("notification");
@@ -202,16 +239,14 @@ function clearImageTable() {
   messageInput.value = "";
 }
 
-// -------------------- CAPTURE VC PANEL --------------------
 async function captureVCPannel() {
-  const panel = document.querySelector("#vcPanel");
+  const panel = document.querySelector(".panel:first-child");
   const canvas = await html2canvas(panel);
   const dataURL = canvas.toDataURL("image/png");
   uploadedImages.push({ name:`VC_Attendance_${Date.now()}.png`, dataURL, status:"Pending" });
   saveAndRender();
 }
 
-// -------------------- SEND IMAGES TO DISCORD --------------------
 async function sendImagesToDiscord() {
   if(uploadedImages.length===0) return alert("No images to send!");
   const message = messageInput.value.trim() || "Attendance Today has been uploaded!";
@@ -230,59 +265,58 @@ async function sendImagesToDiscord() {
   }).catch(err=>console.error(err));
 }
 
-// -------------------- HISTORY BUTTON --------------------
 function toggleHistoryPanel() {
   historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
 }
 
-// -------------------- ADMIN LOGIN PERSISTENCE --------------------
+/* -------------------- ADMIN LOGIN -------------------- */
 const adminBtn = document.getElementById("adminBtn");
 const adminPassword = document.getElementById("adminPassword");
 const logoutBtn = document.getElementById("logoutBtn");
 const imagePanel = document.getElementById("imagePanel");
-let adminLoggedIn = false;
-let adminTimeout;
+const adminStatus = document.getElementById("adminStatus");
+let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
-function showAdminPassword() {
-  adminPassword.style.display = "inline-block";
-  adminPassword.focus();
-  if(adminTimeout) clearTimeout(adminTimeout);
-  adminTimeout = setTimeout(() => { if(!adminLoggedIn) adminPassword.style.display = "none"; }, 10000);
+function updateAdminStatus(){
+  adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
 }
 
-adminBtn.addEventListener("click", showAdminPassword);
+function showPasswordInput(){
+  adminPassword.style.display="inline-block";
+  adminPassword.focus();
+  setTimeout(()=>{ adminPassword.style.display="none"; }, 10000);
+}
 
-adminPassword.addEventListener("input", () => {
-  if(adminTimeout) clearTimeout(adminTimeout);
-  adminTimeout = setTimeout(() => { if(!adminLoggedIn) adminPassword.style.display = "none"; }, 10000);
-});
+adminBtn.addEventListener("click", ()=>{ showPasswordInput(); });
 
-adminPassword.addEventListener("keyup", (e) => {
-  if(e.key === "Enter" && adminPassword.value === "0212") {
+adminPassword.addEventListener("keyup", e=>{
+  if(e.key === "Enter" && adminPassword.value === "0212"){
     adminLoggedIn = true;
     localStorage.setItem("adminLoggedIn", "true");
-    adminPassword.style.display = "none";
-    imagePanel.style.display = "block";
-    logoutBtn.style.display = "inline-block";
-    adminBtn.style.display = "none";
+    imagePanel.style.display="block";
+    logoutBtn.style.display="inline-block";
+    adminBtn.style.display="none";
+    adminPassword.style.display="none";
+    updateAdminStatus();
   }
 });
 
-logoutBtn.addEventListener("click", () => {
-  adminLoggedIn = false;
-  localStorage.setItem("adminLoggedIn", "false");
-  imagePanel.style.display = "none";
-  logoutBtn.style.display = "none";
-  adminBtn.style.display = "inline-block";
-});
-
-// Persist login across refresh
-if(localStorage.getItem("adminLoggedIn") === "true") {
-  adminLoggedIn = true;
-  imagePanel.style.display = "block";
-  logoutBtn.style.display = "inline-block";
-  adminBtn.style.display = "none";
+if(adminLoggedIn){
+  imagePanel.style.display="block";
+  logoutBtn.style.display="inline-block";
+  adminBtn.style.display="none";
+  updateAdminStatus();
 }
+
+logoutBtn.addEventListener("click", ()=>{
+  adminLoggedIn = false;
+  localStorage.setItem("adminLoggedIn","false");
+  imagePanel.style.display="none";
+  logoutBtn.style.display="none";
+  adminBtn.style.display="inline-block";
+  updateAdminStatus();
+});
 </script>
+
 </body>
 </html>
