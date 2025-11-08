@@ -13,21 +13,14 @@ const client = new Client({
   partials: [Partials.GuildMember, Partials.User],
 });
 
-client.once("ready", async () => {
+// 🆔 Set your Discord Server ID and Voice Channel ID here
+const TARGET_GUILD_ID = "1038275000697901106";      // e.g. "123456789012345678"
+const TARGET_VC_CHANNEL_ID = "1038275000697901110"; // e.g. "987654321098765432"
+
+client.once("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
-
-  // Cache all members for accurate detection
-  for (const [guildId, guild] of client.guilds.cache) {
-    try {
-      await guild.members.fetch();
-      console.log(`📥 Cached members for guild: ${guild.name}`);
-    } catch (err) {
-      console.error(`⚠️ Failed to cache members for ${guild.name}:`, err.message);
-    }
-  }
-
-  // Start automatic voice tracking every 10 seconds
-  setInterval(() => checkActiveVoiceMembers(), 10000);
+  console.log(`🎯 Tracking server: ${TARGET_GUILD_ID}`);
+  console.log(`🎧 Tracking voice channel: ${TARGET_VC_CHANNEL_ID}`);
 });
 
 client.on("voiceStateUpdate", (oldState, newState) => {
@@ -36,32 +29,34 @@ client.on("voiceStateUpdate", (oldState, newState) => {
 
   const user = member.displayName || member.user.username;
   const guildId = newState.guild.id;
-  const newChannel = newState.channel ? newState.channel.name : null;
-  const oldChannel = oldState.channel ? oldState.channel.name : null;
 
-  if (!oldState.channelId && newState.channelId) {
-    console.log(`🟢 ${user} joined ${newChannel}`);
-    sendEvent({ type: "join", user, channel: newChannel, guildId });
-  } else if (oldState.channelId && !newState.channelId) {
-    console.log(`🔴 ${user} left ${oldChannel}`);
-    sendEvent({ type: "leave", user, channel: oldChannel, guildId });
+  // only track our target guild
+  if (guildId !== TARGET_GUILD_ID) return;
+
+  const newChannelId = newState.channelId;
+  const oldChannelId = oldState.channelId;
+
+  // only track join/leave for the target voice channel
+  if (!oldChannelId && newChannelId === TARGET_VC_CHANNEL_ID) {
+    // joined
+    sendEvent({
+      type: "join",
+      user,
+      channel: newState.channel?.name || "unknown",
+      guildId,
+    });
+    console.log(`🟢 ${user} joined ${newState.channel?.name}`);
+  } else if (oldChannelId === TARGET_VC_CHANNEL_ID && !newChannelId) {
+    // left
+    sendEvent({
+      type: "leave",
+      user,
+      channel: oldState.channel?.name || "unknown",
+      guildId,
+    });
+    console.log(`🔴 ${user} left ${oldState.channel?.name}`);
   }
 });
-
-// Background scanner (auto-detects all active voice members)
-async function checkActiveVoiceMembers() {
-  for (const [guildId, guild] of client.guilds.cache) {
-    guild.channels.cache
-      .filter((ch) => ch.type === 2) // voice channels only
-      .forEach((vc) => {
-        vc.members.forEach((member) => {
-          if (member.user.bot) return;
-          const user = member.displayName || member.user.username;
-          sendEvent({ type: "join", user, channel: vc.name, guildId });
-        });
-      });
-  }
-}
 
 async function sendEvent(event) {
   try {
