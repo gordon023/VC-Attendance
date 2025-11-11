@@ -28,18 +28,18 @@ h1 {
 header {
   width: 100%;
   display:flex;
-  justify-content:center; /* center header title */
+  justify-content:center;
   align-items:center;
   padding: 10px 20px;
   box-sizing: border-box;
-  position: relative; /* for absolute positioning of admin controls */
+  position: relative;
 }
 .admin-controls {
   display:flex;
   align-items:center;
   gap:10px;
   position: absolute;
-  right: 20px; /* top-right corner */
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
   flex-wrap: nowrap;
@@ -63,7 +63,7 @@ header {
 
 /* LEFT COLUMN */
 #mainPanel { 
-  flex: 2; /* takes left space */
+  flex: 2;
   min-width: 400px;
 }
 
@@ -92,8 +92,37 @@ th { color:#238636; }
 #history { max-height:150px; overflow-y:auto; font-size:0.9em; }
 #vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
 textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
-button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
+
+/* BUTTON STYLING */
+button { 
+  background:#238636; 
+  color:#fff; 
+  border:none; 
+  border-radius:6px; 
+  padding:6px 12px; 
+  margin-top:6px; 
+  cursor:pointer; 
+  transition:0.2s;
+}
 button:hover { background:#2ea043; }
+
+/* Tab buttons plain + merged */
+#tabMarket, #tabScreenshot {
+  background:#0d1117;
+  border:1px solid #30363d;
+  border-radius:6px 0 0 6px;
+  padding:6px 12px;
+  margin-top:10px;
+  cursor:pointer;
+  flex:1;
+  text-align:center;
+}
+#tabScreenshot { border-radius:0 6px 6px 0; margin-left:-1px; }
+.tab-active { background:#30363d; color:#fff; }
+
+/* File input styling hidden unless admin */
+#marketScreensInput, #uploadMarketScreensBtn, #clearMarketScreensBtn { display:none; }
+
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
 
@@ -130,7 +159,7 @@ input[type="file"] { margin-top:10px; }
     <button id="updateAnnouncementBtn">Update</button>
     <button id="deleteAnnouncementBtn">Delete</button>
 
-    <div style="display:flex; gap:10px; margin-top:20px;">
+    <div style="display:flex; gap:0; margin-top:20px;">
       <button id="tabMarket">Next Market</button>
       <button id="tabScreenshot">Screenshot</button>
     </div>
@@ -183,6 +212,18 @@ input[type="file"] { margin-top:10px; }
       <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
       <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
       <div id="history" style="display:none;"></div>
+
+      <!-- ADMIN SETTINGS PANEL -->
+      <div id="adminSettings" style="margin-top:15px;">
+        <h3>⚙️ Admin Settings</h3>
+        <input type="text" id="webhookURL" placeholder="Webhook URL">
+        <input type="text" id="voiceChannelID" placeholder="Voice Channel ID">
+        <input type="text" id="serverID" placeholder="Server ID">
+        <div style="margin-top:5px;">
+          <button id="saveSettingsBtn">Save</button>
+          <button id="defaultSettingsBtn">Default</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -264,6 +305,10 @@ const imagePanel=document.getElementById("imagePanel");
 const adminStatus=document.getElementById("adminStatus");
 const mainPanel=document.getElementById("mainPanel");
 
+const screenshotInput=document.getElementById("marketScreensInput");
+const uploadBtn=document.getElementById("uploadMarketScreensBtn");
+const clearBtn=document.getElementById("clearMarketScreensBtn");
+
 let adminLoggedIn=localStorage.getItem("adminLoggedIn")==="true";
 
 function updateAdminUI(){
@@ -272,8 +317,12 @@ function updateAdminUI(){
   adminBtn.style.display=adminLoggedIn?"none":"inline-block";
   imagePanel.style.display=adminLoggedIn?"block":"none";
 
-  // ONLY announcements + tab buttons visible to visitors
-  mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn, #uploadMarketScreensBtn, #clearMarketScreensBtn").forEach(el=>{
+  // Show/hide screenshot file input + buttons only for admin
+  screenshotInput.style.display=adminLoggedIn?"inline-block":"none";
+  uploadBtn.style.display=adminLoggedIn?"inline-block":"none";
+  clearBtn.style.display=adminLoggedIn?"inline-block":"none";
+
+  mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn").forEach(el=>{
     if(adminLoggedIn) el.style.display="";
     else if(el.id==="addAnnouncementBtn" || el.id==="editAnnouncementBtn" || el.id==="updateAnnouncementBtn" || el.id==="deleteAnnouncementBtn") el.style.display="none";
     else el.style.display="none";
@@ -283,7 +332,7 @@ function updateAdminUI(){
   adminPassword.value="";
 }
 
-// -------------------- TAB SWITCH (VISITOR + ADMIN) --------------------
+// -------------------- TAB SWITCH --------------------
 const tabMarket=document.getElementById("tabMarket");
 const tabScreenshot=document.getElementById("tabScreenshot");
 const marketTab=document.getElementById("marketTab");
@@ -292,45 +341,18 @@ const screenshotTab=document.getElementById("screenshotTab");
 tabMarket.addEventListener("click",()=>{
   marketTab.style.display="block";
   screenshotTab.style.display="none";
+  tabMarket.classList.add("tab-active");
+  tabScreenshot.classList.remove("tab-active");
 });
 
 tabScreenshot.addEventListener("click",()=>{
   marketTab.style.display="none";
   screenshotTab.style.display="block";
-});
-
-// -------------------- ANNOUNCEMENTS --------------------
-let announcementText=localStorage.getItem("announcementText")||"";
-const announcementDisplay=document.getElementById("announcementDisplay");
-const announcementInput=document.getElementById("announcementInput");
-
-function renderAnnouncement(){
-  announcementDisplay.textContent=announcementText;
-  announcementInput.value=announcementText;
-}
-renderAnnouncement();
-
-document.getElementById("addAnnouncementBtn").addEventListener("click",()=>{
-  announcementText=announcementInput.value.trim();
-  localStorage.setItem("announcementText",announcementText);
-  renderAnnouncement();
-});
-
-document.getElementById("editAnnouncementBtn").addEventListener("click",()=>{ announcementInput.value=announcementText; });
-document.getElementById("updateAnnouncementBtn").addEventListener("click",()=>{
-  announcementText=announcementInput.value.trim();
-  localStorage.setItem("announcementText",announcementText);
-  renderAnnouncement();
-});
-document.getElementById("deleteAnnouncementBtn").addEventListener("click",()=>{
-  announcementText="";
-  localStorage.removeItem("announcementText");
-  renderAnnouncement();
+  tabMarket.classList.remove("tab-active");
+  tabScreenshot.classList.add("tab-active");
 });
 
 // -------------------- SCREENSHOT DISPLAY --------------------
-const screenshotInput=document.getElementById("marketScreensInput");
-const screenshotGallery=document.getElementById("screenshotGallery");
 let screenshots=JSON.parse(localStorage.getItem("screenshots")||"[]");
 
 function renderScreenshots(){
@@ -349,7 +371,7 @@ function renderScreenshots(){
 }
 renderScreenshots();
 
-document.getElementById("uploadMarketScreensBtn").addEventListener("click",()=>{
+uploadBtn.addEventListener("click",()=>{
   const files=Array.from(screenshotInput.files);
   files.forEach(file=>{
     const reader=new FileReader();
@@ -363,7 +385,7 @@ document.getElementById("uploadMarketScreensBtn").addEventListener("click",()=>{
   screenshotInput.value="";
 });
 
-document.getElementById("clearMarketScreensBtn").addEventListener("click",()=>{
+clearBtn.addEventListener("click",()=>{
   screenshots=[];
   localStorage.removeItem("screenshots");
   renderScreenshots();
@@ -390,6 +412,36 @@ logoutBtn.addEventListener("click",()=>{
   updateAdminUI();
   alert("✅ Logged out successfully!");
 });
+
+// -------------------- ADMIN SETTINGS PANEL --------------------
+const webhookURLInput = document.getElementById("webhookURL");
+const voiceChannelInput = document.getElementById("voiceChannelID");
+const serverIDInput = document.getElementById("serverID");
+const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+const defaultSettingsBtn = document.getElementById("defaultSettingsBtn");
+
+function loadSettings(){
+  webhookURLInput.value = localStorage.getItem("webhookURL") || "";
+  voiceChannelInput.value = localStorage.getItem("voiceChannelID") || "";
+  serverIDInput.value = localStorage.getItem("serverID") || "";
+}
+function saveSettings(){
+  localStorage.setItem("webhookURL", webhookURLInput.value);
+  localStorage.setItem("voiceChannelID", voiceChannelInput.value);
+  localStorage.setItem("serverID", serverIDInput.value);
+  alert("✅ Settings saved!");
+}
+function defaultSettings(){
+  localStorage.removeItem("webhookURL");
+  localStorage.removeItem("voiceChannelID");
+  localStorage.removeItem("serverID");
+  loadSettings();
+  alert("✅ Settings reset to default!");
+}
+saveSettingsBtn.addEventListener("click", saveSettings);
+defaultSettingsBtn.addEventListener("click", defaultSettings);
+
+loadSettings();
 </script>
 </body>
 </html>
