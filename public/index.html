@@ -7,7 +7,7 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-<!-- SheetJS for reading .xlsx/.xls in-browser -->
+<!-- SheetJS to parse Excel (.xlsx/.xls/.csv) in-browser -->
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -21,7 +21,6 @@ body {
   display:flex; 
   flex-direction:column; 
   align-items:center; 
-  min-height:100vh;
 }
 h1 { 
   color:#238636; 
@@ -59,28 +58,26 @@ header {
 }
 .admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
 
-/* ------------------ CONTAINER LAYOUT ------------------ */
-.container {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    "main vc"
-    "main image";
-  gap: 20px;
-  width: 95%;
-  flex: 1;
-  box-sizing: border-box;
+/* ------------------ CONTAINER ------------------ */
+.container { 
+  display:flex; 
+  flex-wrap:wrap; 
+  gap:20px; 
+  justify-content:space-between; 
+  align-items:flex-start;
+  width:95%; 
+  box-sizing:border-box;
 }
 
-/* ------------------ PANEL STYLING ------------------ */
+/* ------------------ PANEL ------------------ */
 .panel { 
   background:#161b22; 
   border:1px solid #30363d; 
   border-radius:12px; 
   padding:20px; 
+  flex:1 1 300px; 
+  max-width:500px; 
   box-sizing:border-box;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
@@ -95,13 +92,15 @@ button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
 
-/* ------------------ INDIVIDUAL PANEL AREAS ------------------ */
+/* ------------------ MAIN PANEL ------------------ */
 #mainPanel {
-  grid-area: main;
-  height: calc(100vh - 150px);
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:12px;
+  padding:20px;
+  flex:1 1 280px;
+  max-width:400px;
+  box-sizing:border-box;
 }
 #mainPanel h2 {
   color:#58a6ff;
@@ -109,8 +108,7 @@ input[type="file"] { margin-top:10px; }
 }
 #mainPanel input[type="file"],
 #mainPanel input[type="url"],
-#mainPanel input[type="text"],
-#mainPanel textarea {
+#mainPanel input[type="text"] {
   width:100%;
   background:#0d1117;
   color:#e6edf3;
@@ -121,71 +119,35 @@ input[type="file"] { margin-top:10px; }
   box-sizing:border-box;
 }
 
-/* Announcement box */
-#announcementBox {
-  background:#0b1220;
-  border:1px dashed #24303a;
-  padding:12px;
-  border-radius:8px;
-  margin-bottom:16px;
-}
-.announce-text {
-  white-space:pre-wrap;
-  color:#c9e0ff;
-  font-size:1rem;
-  line-height:1.4;
-}
+/* announcement */
+#announcementBox { margin-bottom:12px; }
+#announcementBox textarea { height:100px; }
 
-/* market containers */
-.market-wrapper {
-  background:#0b1220;
-  border:1px dashed #24303a;
-  padding:12px;
-  border-radius:8px;
-  margin-bottom:12px;
-  overflow:auto;
-}
-.market-table { width:100%; border-collapse:collapse; }
-.market-table th, .market-table td { padding:6px 8px; border-bottom:1px solid #24303a; text-align:left; }
+/* market layout: side-by-side */
+.market-row { display:flex; gap:12px; margin-top:12px; align-items:flex-start; }
+.market-col { flex:1; background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px; box-sizing:border-box; }
+.market-col h3 { margin:0 0 8px 0; color:#2ea043; font-size:1rem; }
 
-/* screenshots small gallery */
-.market-screens { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-.market-screens img { max-width:120px; max-height:80px; border-radius:6px; border:1px solid #24303a; }
+/* market table smaller font */
+.market-table th, .market-table td { padding:6px 8px; font-size:0.95rem; }
 
-/* references list */
-.refs-list { margin-top:8px; font-size:0.95rem; color:#9fb2c8; }
-.ref-item { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid #21262d; }
+/* screenshots grid */
+.screens-grid { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.screens-grid img { max-width:120px; max-height:90px; border-radius:6px; border:1px solid #24303a; }
 
-/* ------------------ VC & IMAGE area separators ------------------ */
-#vcPanel {
-  grid-area: vc;
-  height: 260px;
-  overflow:auto;
-  border-bottom: 1px solid #21262d; /* thin separator line */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-}
+/* refs */
+.refs-list { margin-top:8px; color:#9fb2c8; font-size:0.95rem; }
 
-#imagePanel {
-  grid-area: image;
-  height: calc(100vh - 460px);
-  overflow:auto;
-  border-top: 1px solid #21262d; /* thin separator line */
-  box-shadow: 0 -1px 4px rgba(0,0,0,0.2);
-}
+/* small helpers */
+.hidden { display:none !important; }
 
 /* ------------------ RESPONSIVE ------------------ */
 @media(max-width:900px){
-  .container {
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-  #mainPanel, #vcPanel, #imagePanel {
-    width:95%;
-    height:auto;
-  }
+  .container{flex-direction:column; align-items:center;}
   header{justify-content:center; padding:10px;}
   .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
+  .panel, #mainPanel{max-width:95%;}
+  .market-row { flex-direction:column; }
 }
 </style>
 </head>
@@ -203,88 +165,74 @@ input[type="file"] { margin-top:10px; }
 
 <div class="container">
 
-  <!-- 🧩 MAIN PANEL (with announcement, market and refs) -->
+  <!-- 🧩 MAIN PANEL (Updated: Announcement + Market + Screens + Refs) -->
   <div class="panel" id="mainPanel">
     <h2>📋 Main Panel</h2>
 
-    <!-- Announcement container -->
+    <!-- Announcement -->
     <div id="announcementBox">
-      <!-- Admin edit area (hidden for non-admin) -->
-      <div id="announcementEditor" style="display:none;">
-        <textarea id="announcementInput" placeholder="Type announcement here..."></textarea>
-        <div style="display:flex; gap:8px; margin-top:8px;">
-          <button id="saveAnnouncementBtn">Save Announcement</button>
-          <button id="clearAnnouncementBtn">Clear</button>
-        </div>
+      <h3>📢 Announcement</h3>
+      <!-- admin textarea -->
+      <textarea id="announcementInput" placeholder="Type announcement here (admin only)"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button id="saveAnnouncementBtn">Save Announcement</button>
+        <button id="clearAnnouncementBtn">Clear Announcement</button>
       </div>
-      <!-- View area (visible to all) -->
-      <div id="announcementView">
-        <div class="announce-text" id="announceText">No announcements yet.</div>
-        <div id="announceMeta" style="margin-top:8px; font-size:0.85rem; color:#84a0b8;"></div>
-      </div>
-      <!-- Excel/file inputs for announcement (admin only) -->
-      <div id="announceFileInputs" style="display:none; margin-top:8px;">
-        <input type="file" id="announceExcelInput" accept=".xlsx,.xls,.csv">
-        <input type="url" id="announceLinkInput" placeholder="Paste a data link here for announcement (optional)">
+      <!-- view for all -->
+      <div id="announcementView" class="announcement-display" style="margin-top:10px; white-space:pre-wrap; color:#c9e0ff; padding:10px; border-radius:8px; background:#0b1220; border:1px solid #24303a;">
+        No announcements yet.
       </div>
     </div>
 
-    <!-- Market (Excel parsed table) -->
-    <div class="market-wrapper" id="marketWrapper">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><strong style="color:#58a6ff;">Market (Date / Item / Price)</strong></div>
-        <div style="font-size:0.9rem; color:#9fb2c8;">Admin only controls hidden from visitors</div>
-      </div>
+    <!-- Excel upload / Market + Screens side-by-side -->
+    <div id="marketBox">
+      <h3>📊 Market (Date / Item / Price)</h3>
 
-      <!-- Admin upload controls -->
-      <div id="marketAdminControls" style="margin-top:8px; display:none;">
+      <!-- Admin-only upload inputs -->
+      <div id="marketAdminControls" style="margin-top:8px;">
         <input type="file" id="marketExcelInput" accept=".xlsx,.xls,.csv">
+        <input type="url" id="marketLinkInput" placeholder="Paste a data link here...">
         <div style="display:flex; gap:8px; margin-top:8px;">
-          <button id="clearMarketBtn">Clear Market Data</button>
+          <button id="importMarketBtn">Import</button>
+          <button id="clearMarketBtn">Clear Market</button>
         </div>
       </div>
 
-      <!-- Market table (visible to all) -->
-      <div id="marketTableContainer" style="margin-top:12px; overflow:auto;">
-        <table class="market-table" id="marketTable">
-          <thead>
-            <tr><th>Date</th><th>Item</th><th>Price</th><th style="width:80px;">Actions</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <!-- side-by-side market table and screenshots -->
+      <div class="market-row">
+        <div class="market-col">
+          <h3>Market Table</h3>
+          <table class="market-table" id="marketTable">
+            <thead><tr><th>Date</th><th>Item</th><th>Price</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
 
-      <!-- Market screenshots (admin upload area shown only to admin) -->
-      <div id="marketScreensAdmin" style="margin-top:10px; display:none;">
-        <div style="display:flex; gap:8px;">
+        <div class="market-col">
+          <h3>Excel Screenshots</h3>
+          <!-- admin-only screenshot upload -->
           <input type="file" id="marketScreensInput" accept="image/*" multiple>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button id="uploadMarketScreensBtn">Upload Screens</button>
+            <button id="clearMarketScreensBtn">Clear Screens</button>
+          </div>
+          <div class="screens-grid" id="marketScreensGallery"></div>
         </div>
       </div>
 
-      <!-- Gallery of market screenshots (visible to all) -->
-      <div class="market-screens" id="marketScreensGallery"></div>
-    </div>
-
-    <!-- References (Excel link) -->
-    <div class="market-wrapper" id="refsWrapper" style="margin-top:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><strong style="color:#58a6ff;">References / External Excel Links</strong></div>
-        <div style="font-size:0.9rem; color:#9fb2c8;">Links uploaded by admin</div>
-      </div>
-
-      <div id="refsAdminControls" style="margin-top:8px; display:none;">
-        <input type="url" id="refLinkInput" placeholder="Paste reference file/link (xlsx/csv)...">
+      <!-- Reference link (admin only input) -->
+      <div style="margin-top:12px;">
+        <h3>🔗 Reference Links</h3>
+        <input type="url" id="refLinkInput" placeholder="Paste reference Excel/CSV link here...">
         <div style="display:flex; gap:8px; margin-top:8px;">
           <button id="addRefBtn">Add Reference</button>
         </div>
+        <div class="refs-list" id="refsList"></div>
       </div>
-
-      <div class="refs-list" id="refsList"></div>
     </div>
-
   </div>
 
-  <!-- 🎤 ACTIVE VOICE CHAT PANEL -->
+  <!-- 🎤 ACTIVE VOICE CHAT PANEL (unchanged) -->
   <div class="panel" id="vcPanel">
     <h2>🟢 Live Voice Chat - Lordnine</h2>
     <div id="vcAlert"></div>
@@ -294,7 +242,7 @@ input[type="file"] { margin-top:10px; }
     </table>
   </div>
 
-  <!-- 🖼️ IMAGE UPLOADER PANEL -->
+  <!-- 🖼️ IMAGE UPLOADER PANEL (unchanged) -->
   <div class="panel" id="imagePanel" style="display:none;">
     <h2>🖼️ Upload image/screenshot for Attendance</h2>
     <input type="file" id="imageInput" multiple accept="image/*">
@@ -315,6 +263,8 @@ input[type="file"] { margin-top:10px; }
 
 <!-- KEEPING ALL EXISTING JS EXACTLY THE SAME BELOW -->
 <script>
+/* ---------- ORIGINAL FUNCTIONAL SCRIPT (unchanged) ---------- */
+
 // -------------------- SOCKET.IO --------------------
 const socket = io();
 let attendance = {};
@@ -508,314 +458,261 @@ logoutBtn.addEventListener("click", ()=>{
 });
 </script>
 
-<!-- NEW FEATURES SCRIPT: Announcement, Market, Screenshots, References -->
+<!-- ---------- NEW: Main Panel behavior (announcement, market parsing, screenshots, references) ---------- -->
 <script>
 /*
-  IMPORTANT:
-  - I did NOT modify any of your existing code above.
-  - Below script depends on the existing `adminLoggedIn` variable and admin UI elements.
+  This script adds the admin-only Main Panel features:
+  - Announcement (textarea → persisted to localStorage)
+  - Market Excel import (.xlsx/.xls/.csv) or link import, parsed to Date/Item/Price, saved in localStorage
+  - Market screenshots (side-by-side) persisted to localStorage
+  - Reference links list persisted to localStorage
+  It relies on the existing adminLoggedIn variable and admin login flow above.
 */
 
-// ---- localStorage keys ----
-const LS_ANNOUNCE = "zyg_announcement";
+// LocalStorage keys
+const LS_ANN = "zyg_announcement";
 const LS_MARKET = "zyg_market";
 const LS_MARKET_SCREENS = "zyg_market_screens";
 const LS_REFS = "zyg_refs";
 
-// ---- DOM elements ----
+// DOM refs
 const announcementInput = document.getElementById("announcementInput");
-const announcementEditor = document.getElementById("announcementEditor");
-const announcementView = document.getElementById("announcementView");
-const announceText = document.getElementById("announceText");
-const announceMeta = document.getElementById("announceMeta");
 const saveAnnouncementBtn = document.getElementById("saveAnnouncementBtn");
 const clearAnnouncementBtn = document.getElementById("clearAnnouncementBtn");
-const announceFileInputs = document.getElementById("announceFileInputs");
-const announceExcelInput = document.getElementById("announceExcelInput");
-const announceLinkInput = document.getElementById("announceLinkInput");
+const announcementView = document.getElementById("announcementView");
 
 const marketExcelInput = document.getElementById("marketExcelInput");
-const marketTableBody = document.querySelector("#marketTable tbody");
+const marketLinkInput = document.getElementById("marketLinkInput");
+const importMarketBtn = document.getElementById("importMarketBtn");
 const clearMarketBtn = document.getElementById("clearMarketBtn");
+const marketTableBody = document.querySelector("#marketTable tbody");
+
 const marketScreensInput = document.getElementById("marketScreensInput");
+const uploadMarketScreensBtn = document.getElementById("uploadMarketScreensBtn");
+const clearMarketScreensBtn = document.getElementById("clearMarketScreensBtn");
 const marketScreensGallery = document.getElementById("marketScreensGallery");
 
-const refsList = document.getElementById("refsList");
 const refLinkInput = document.getElementById("refLinkInput");
 const addRefBtn = document.getElementById("addRefBtn");
+const refsList = document.getElementById("refsList");
 
-// Admin-only controls wrappers
-const announceEditorWrapper = document.getElementById("announcementEditor");
-const announceFileInputsWrapper = document.getElementById("announceFileInputs");
 const marketAdminControls = document.getElementById("marketAdminControls");
-const marketScreensAdmin = document.getElementById("marketScreensAdmin");
-const refsAdminControls = document.getElementById("refsAdminControls");
 
-// ---- state ----
+// Load state from localStorage
+let announcement = localStorage.getItem(LS_ANN) || "";
 let marketData = JSON.parse(localStorage.getItem(LS_MARKET) || "[]");
 let marketScreens = JSON.parse(localStorage.getItem(LS_MARKET_SCREENS) || "[]");
 let refs = JSON.parse(localStorage.getItem(LS_REFS) || "[]");
-let announcement = JSON.parse(localStorage.getItem(LS_ANNOUNCE) || "null");
 
-// ---- helpers ----
-function saveLS(key, value){
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-function showAdminUI(flag){
-  // show/hide admin-only inputs based on flag
-  announceEditorWrapper.style.display = flag ? "block" : "none";
-  announceFileInputsWrapper.style.display = flag ? "block" : "none";
-  marketAdminControls.style.display = flag ? "block" : "none";
-  marketScreensAdmin.style.display = flag ? "block" : "none";
-  refsAdminControls.style.display = flag ? "block" : "none";
-  // When not admin, hide file input elements visually but keep viewable data
-}
-
-// ---- announcement functions ----
+// Render functions
 function renderAnnouncement(){
-  if(!announcement){
-    announceText.textContent = "No announcements yet.";
-    announceMeta.textContent = "";
-    return;
-  }
-  announceText.textContent = announcement.text || "No announcements yet.";
-  const when = announcement.updatedAt ? new Date(announcement.updatedAt).toLocaleString() : "";
-  announceMeta.textContent = when ? `Last updated: ${when}` : "";
+  announcementView.textContent = announcement || "No announcements yet.";
+  // hide textarea when not admin: handled by toggleAdminElements
 }
+renderAnnouncement();
 
-function saveAnnouncement(){
-  const text = (announcementInput.value || "").trim();
-  announcement = { text, updatedAt: Date.now() };
-  saveLS(LS_ANNOUNCE, announcement);
-  renderAnnouncement();
-  toggleAdminView(); // hide inputs for non-admin
-}
-
-function clearAnnouncement(){
-  announcement = null;
-  localStorage.removeItem(LS_ANNOUNCE);
-  renderAnnouncement();
-}
-
-// ---- market functions ----
 function renderMarketTable(){
   marketTableBody.innerHTML = "";
-  marketData.forEach((row, idx) => {
+  marketData.forEach(row => {
     const tr = document.createElement("tr");
-    const date = row.date || "";
-    const item = row.item || "";
-    const price = row.price || "";
-    tr.innerHTML = `<td>${escapeHtml(date)}</td><td>${escapeHtml(item)}</td><td>${escapeHtml(price)}</td>
-      <td>
-        <button data-idx="${idx}" class="delMarketBtn">Delete</button>
-      </td>`;
+    tr.innerHTML = `<td>${escapeHtml(row.date)}</td><td>${escapeHtml(row.item)}</td><td>${escapeHtml(row.price)}</td>`;
     marketTableBody.appendChild(tr);
   });
-  // attach delete handlers
-  document.querySelectorAll(".delMarketBtn").forEach(btn=>{
-    btn.addEventListener("click", (e)=>{
-      const i = Number(e.currentTarget.dataset.idx);
-      marketData.splice(i,1);
-      saveLS(LS_MARKET, marketData);
-      renderMarketTable();
-    });
-  });
 }
+renderMarketTable();
 
-function escapeHtml(text){
-  if(!text) return "";
-  return String(text).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m];});
-}
-
-function clearMarketData(){
-  if(!confirm("Clear all market data?")) return;
-  marketData = [];
-  saveLS(LS_MARKET, marketData);
-  renderMarketTable();
-}
-
-// ---- market screenshot functions ----
 function renderMarketScreens(){
   marketScreensGallery.innerHTML = "";
-  marketScreens.forEach((s, idx)=>{
+  marketScreens.forEach((s, idx) => {
     const img = document.createElement("img");
     img.src = s.dataURL;
     img.title = s.name;
     img.dataset.idx = idx;
     marketScreensGallery.appendChild(img);
-    // right-click removal for admin
-    img.addEventListener("contextmenu", (ev)=>{
+
+    // allow admin to delete by right-click/contextmenu
+    img.addEventListener("contextmenu", (ev) => {
       ev.preventDefault();
       if(!adminLoggedIn) return;
-      if(confirm("Delete this screenshot?")){
+      if(confirm("Delete this screenshot?")) {
         marketScreens.splice(idx,1);
-        saveLS(LS_MARKET_SCREENS, marketScreens);
+        saveMarketScreens();
         renderMarketScreens();
       }
     });
   });
 }
+renderMarketScreens();
 
-// ---- refs functions ----
 function renderRefs(){
   refsList.innerHTML = "";
-  refs.forEach((r, idx)=>{
+  refs.forEach((r, idx) => {
     const div = document.createElement("div");
-    div.className = "ref-item";
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+    div.style.padding = "6px 0";
+    div.style.borderBottom = "1px solid #21262d";
     div.innerHTML = `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener" style="color:#9fd4ff;">${escapeHtml(r.name || r.link)}</a>
-      <div>
-        ${adminLoggedIn ? `<button data-idx="${idx}" class="delRefBtn">Remove</button>` : ""}
-      </div>`;
+      ${adminLoggedIn ? `<button data-idx="${idx}" class="delRefBtn">Remove</button>` : ""}`;
     refsList.appendChild(div);
   });
+
   document.querySelectorAll(".delRefBtn").forEach(btn=>{
-    btn.addEventListener("click", (e)=>{
+    btn.addEventListener("click", (e) => {
       const i = Number(e.currentTarget.dataset.idx);
       if(!confirm("Remove this reference?")) return;
       refs.splice(i,1);
-      saveLS(LS_REFS, refs);
+      saveRefs();
       renderRefs();
     });
   });
 }
+renderRefs();
 
-// ---- file parsing ----
-async function parseExcelFile(file){
-  // supports .csv and .xlsx/.xls using SheetJS
-  const name = file.name || "";
-  if(name.endsWith(".csv") || name.endsWith(".CSV")){
+// helpers
+function saveAnnouncement(){
+  localStorage.setItem(LS_ANN, announcement);
+}
+function saveMarket(){
+  localStorage.setItem(LS_MARKET, JSON.stringify(marketData));
+}
+function saveMarketScreens(){
+  localStorage.setItem(LS_MARKET_SCREENS, JSON.stringify(marketScreens));
+}
+function saveRefs(){
+  localStorage.setItem(LS_REFS, JSON.stringify(refs));
+}
+function escapeHtml(text){
+  if(!text) return "";
+  return String(text).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m];});
+}
+
+// Announcement actions
+saveAnnouncementBtn.addEventListener("click", ()=>{
+  announcement = (announcementInput.value || "").trim();
+  saveAnnouncement();
+  renderAnnouncement();
+  announcementInput.value = "";
+  // if non-admin view: will remain visible
+});
+
+clearAnnouncementBtn.addEventListener("click", ()=>{
+  if(!confirm("Clear announcement?")) return;
+  announcement = "";
+  localStorage.removeItem(LS_ANN);
+  renderAnnouncement();
+});
+
+// Market import: support CSV and XLSX/XLS via SheetJS
+async function parseFileToRows(file){
+  const name = (file.name||"").toLowerCase();
+  if(name.endsWith(".csv")){
     const text = await file.text();
     return parseCSVText(text);
   } else {
-    // use SheetJS
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-    // take first sheet
-    const firstSheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[firstSheetName];
+    const ab = await file.arrayBuffer();
+    const wb = XLSX.read(ab, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-    // try to normalize columns to date, item, price (case-insensitive)
-    return normalizeMarketRows(json);
+    return normalizeRows(json);
   }
 }
-
 function parseCSVText(text){
-  // simple CSV parse: split lines, split by comma, handle header
   const lines = text.split(/\r\n|\n/).filter(l=>l.trim()!=="");
   if(lines.length === 0) return [];
   const headers = lines[0].split(",").map(h=>h.trim().toLowerCase());
   const rows = lines.slice(1).map(line=>{
     const cols = line.split(",").map(c=>c.trim());
     const obj = {};
-    headers.forEach((h, i)=> obj[h] = cols[i] || "");
+    headers.forEach((h,i)=> obj[h] = cols[i] || "");
     return obj;
   });
-  return normalizeMarketRows(rows);
+  return normalizeRows(rows);
 }
-
-function normalizeMarketRows(rows){
-  // convert rows (objects) to array of {date, item, price}
-  const mapped = rows.map(r=>{
+function normalizeRows(rows){
+  // Map any row object to {date, item, price}
+  return rows.map(r=>{
     const keys = Object.keys(r);
-    // find columns
-    const lc = {};
-    keys.forEach(k=> lc[k.toLowerCase()] = k);
-    const dateKey = lc["date"] || lc["day"] || lc["tanggal"] || keys[0];
-    const itemKey = lc["item"] || lc["name"] || lc["market"] || keys[1];
-    const priceKey = lc["price"] || lc["amount"] || lc["harga"] || keys[2];
+    const lower = {};
+    keys.forEach(k=> lower[k.toLowerCase()] = k);
+    const dateKey = lower["date"] || lower["day"] || keys[0];
+    const itemKey = lower["item"] || lower["name"] || keys[1];
+    const priceKey = lower["price"] || lower["amount"] || keys[2];
     return {
       date: r[dateKey] !== undefined ? r[dateKey] : "",
       item: r[itemKey] !== undefined ? r[itemKey] : "",
       price: r[priceKey] !== undefined ? r[priceKey] : ""
     };
   });
-  return mapped;
 }
 
-// ---- link fetch & parse ----
-async function fetchAndParseLink(url){
+// Handle file import
+marketExcelInput.addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if(!f) return;
   try{
-    const resp = await fetch(url);
-    if(!resp.ok) throw new Error("Network error");
-    // try to determine content type
-    const ct = resp.headers.get("content-type") || "";
-    if(ct.includes("text/csv") || url.endsWith(".csv")){
-      const text = await resp.text();
-      return parseCSVText(text);
-    } else {
-      // try to get as arrayBuffer and parse with XLSX
-      const ab = await resp.arrayBuffer();
-      const workbook = XLSX.read(ab, { type:"array" });
-      const firstSheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheetName];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      return normalizeMarketRows(json);
-    }
+    const rows = await parseFileToRows(f);
+    if(rows.length){
+      marketData = marketData.concat(rows);
+      saveMarket();
+      renderMarketTable();
+      alert("Imported " + rows.length + " rows into Market.");
+    } else alert("No rows parsed.");
   }catch(err){
-    console.error("Fetch/parse link error:", err);
-    alert("Failed to fetch/parse link. Check CORS or URL.");
-    return [];
+    console.error(err);
+    alert("Failed to parse file.");
   }
-}
-
-// ---- event handlers ----
-saveAnnouncementBtn.addEventListener("click", saveAnnouncement);
-clearAnnouncementBtn.addEventListener("click", clearAnnouncement);
-
-// announcement file inputs (admin)
-announceExcelInput.addEventListener("change", async (e)=>{
-  const f = e.target.files[0];
-  if(!f) return;
-  const rows = await parseExcelFile(f);
-  if(rows.length){
-    // show extracted data in announcement? We'll append the first few rows as text
-    const summary = rows.slice(0,5).map(r => `${r.date} | ${r.item} | ${r.price}`).join("\n");
-    announcementInput.value = (announcementInput.value ? announcementInput.value + "\n\n" : "") + summary;
-    alert("Excel parsed and appended to announcement input (first rows). Save announcement to apply.");
-  }
-  announceExcelInput.value = "";
-});
-
-announceLinkInput.addEventListener("change", async (e)=>{
-  const url = e.target.value.trim();
-  if(!url) return;
-  const rows = await fetchAndParseLink(url);
-  if(rows.length){
-    const summary = rows.slice(0,5).map(r => `${r.date} | ${r.item} | ${r.price}`).join("\n");
-    announcementInput.value = (announcementInput.value ? announcementInput.value + "\n\n" : "") + summary;
-    alert("Link parsed and appended to announcement input (first rows). Save announcement to apply.");
-  }
-  announceLinkInput.value = "";
-});
-
-// market excel upload
-marketExcelInput.addEventListener("change", async (e)=>{
-  const f = e.target.files[0];
-  if(!f) return;
-  const rows = await parseExcelFile(f); // array of {date,item,price}
-  if(rows.length){
-    marketData = marketData.concat(rows);
-    saveLS(LS_MARKET, marketData);
-    renderMarketTable();
-    alert("Market data imported (" + rows.length + " rows).");
-  } else alert("No rows parsed.");
   marketExcelInput.value = "";
 });
 
-// market link parsing for refs? optionally admin can add refs that are parsed separately (handled below)
+// Import from link (fetch + parse)
+importMarketBtn.addEventListener("click", async ()=>{
+  const url = (marketLinkInput.value||"").trim();
+  if(!url) return alert("Paste a valid link.");
+  try{
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error("Network error");
+    const ct = resp.headers.get("content-type") || "";
+    if(ct.includes("text/csv") || url.toLowerCase().endsWith(".csv")){
+      const text = await resp.text();
+      const rows = parseCSVText(text);
+      marketData = marketData.concat(rows);
+    } else {
+      const ab = await resp.arrayBuffer();
+      const wb = XLSX.read(ab, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      const rows = normalizeRows(json);
+      marketData = marketData.concat(rows);
+    }
+    saveMarket();
+    renderMarketTable();
+    alert("Imported from link.");
+  }catch(err){
+    console.error(err);
+    alert("Failed to fetch/parse the link (CORS may block some URLs).");
+  }
+  marketLinkInput.value = "";
+});
 
-// clear market
-clearMarketBtn.addEventListener("click", clearMarketData);
+// Clear market
+clearMarketBtn.addEventListener("click", ()=>{
+  if(!confirm("Clear all market data?")) return;
+  marketData = [];
+  saveMarket();
+  renderMarketTable();
+});
 
-// market screenshots
-marketScreensInput.addEventListener("change", (e)=>{
-  const files = Array.from(e.target.files || []);
+// Market images (screenshots for excel)
+uploadMarketScreensBtn.addEventListener("click", ()=>{
+  const files = Array.from(marketScreensInput.files || []);
+  if(files.length === 0) return alert("No images selected.");
   files.forEach(f=>{
     const reader = new FileReader();
-    reader.onload = (ev)=>{
-      marketScreens.push({ name: f.name, dataURL: ev.target.result });
-      saveLS(LS_MARKET_SCREENS, marketScreens);
+    reader.onload = (e) => {
+      marketScreens.push({ name: f.name, dataURL: e.target.result });
+      saveMarketScreens();
       renderMarketScreens();
     };
     reader.readAsDataURL(f);
@@ -823,93 +720,51 @@ marketScreensInput.addEventListener("change", (e)=>{
   marketScreensInput.value = "";
 });
 
-// refs add
-addRefBtn.addEventListener("click", async ()=>{
-  const url = (refLinkInput.value || "").trim();
+clearMarketScreensBtn.addEventListener("click", ()=>{
+  if(!confirm("Clear all market screenshots?")) return;
+  marketScreens = [];
+  saveMarketScreens();
+  renderMarketScreens();
+});
+
+// References
+addRefBtn.addEventListener("click", ()=>{
+  const url = (refLinkInput.value||"").trim();
   if(!url) return alert("Enter a link.");
-  // optionally parse it to create a simple name
   const name = url.split("/").pop() || url;
   refs.push({ link: url, name });
-  saveLS(LS_REFS, refs);
+  saveRefs();
   renderRefs();
   refLinkInput.value = "";
 });
 
-// allow reference to be parsed to market data by clicking a ref (admin-only)
-refsList.addEventListener("click", async (e)=>{
-  const target = e.target;
-  if(target.tagName.toLowerCase() === "a"){
-    // nothing special
-    return;
-  }
-  // if user clicks the link text area, do nothing else
-});
+// initial render calls done above
 
-// allow importing ref link to market on double-click (admin)
-refsList.addEventListener("dblclick", async (e)=>{
-  const a = e.target.closest("a");
-  if(!a) return;
-  const url = a.href;
-  if(!adminLoggedIn) return;
-  if(!confirm("Import this reference link into Market data?")) return;
-  const rows = await fetchAndParseLink(url);
-  if(rows.length){
-    marketData = marketData.concat(rows);
-    saveLS(LS_MARKET, marketData);
-    renderMarketTable();
-    alert("Imported " + rows.length + " rows from reference.");
-  } else alert("No rows parsed.");
-});
-
-// delete market rows by action button handled in renderMarketTable
-
-// ---- initialization & admin visibility toggle ----
-function initializeFeatureState(){
-  // load from LS
-  const savedAnnouncement = JSON.parse(localStorage.getItem(LS_ANNOUNCE) || "null");
-  if(savedAnnouncement) announcement = savedAnnouncement;
-
-  marketData = JSON.parse(localStorage.getItem(LS_MARKET) || "[]");
-  marketScreens = JSON.parse(localStorage.getItem(LS_MARKET_SCREENS) || "[]");
-  refs = JSON.parse(localStorage.getItem(LS_REFS) || "[]");
-
-  // render
-  renderAnnouncement();
-  renderMarketTable();
-  renderMarketScreens();
-  renderRefs();
-  // reflect admin state
-  toggleAdminView();
-}
-
-function toggleAdminView(){
-  // show/hide admin UI based on adminLoggedIn
-  showAdminUI(adminLoggedIn);
-  // announcement editor initial fill
-  if(adminLoggedIn){
-    // populate editor with current announcement
-    announcementInput.value = announcement && announcement.text ? announcement.text : "";
-  } else {
-    // hide inputs and show only view
-    announcementInput.value = "";
-  }
-  // always re-render lists
-  renderAnnouncement();
-  renderMarketTable();
-  renderMarketScreens();
+// Admin-only visibility: show/hide inputs/buttons depending on adminLoggedIn
+function toggleAdminElements(show) {
+  // announcement inputs
+  announcementInput.style.display = show ? "block" : "none";
+  saveAnnouncementBtn.style.display = show ? "inline-block" : "none";
+  clearAnnouncementBtn.style.display = show ? "inline-block" : "none";
+  // market admin
+  const adminElems = [marketExcelInput, marketLinkInput, importMarketBtn, clearMarketBtn, marketScreensInput, uploadMarketScreensBtn, clearMarketScreensBtn, refLinkInput, addRefBtn];
+  adminElems.forEach(el => { if(el) el.style.display = show ? "block" : "none"; });
+  // also show delete controls for refs (renderRefs will add remove buttons when adminLoggedIn is true)
   renderRefs();
 }
 
-// call initialize after a short timeout to ensure adminLoggedIn from original script has been set
-setTimeout(initializeFeatureState, 50);
+// run once to reflect current admin state
+toggleAdminElements(adminLoggedIn);
 
-// Persist on unload just in case
-window.addEventListener("beforeunload", ()=>{
-  saveLS(LS_MARKET, marketData);
-  saveLS(LS_MARKET_SCREENS, marketScreens);
-  saveLS(LS_REFS, refs);
-  if(announcement) saveLS(LS_ANNOUNCE, announcement);
-});
+// re-run toggle when admin signs in/out
+// we hook into the existing admin login changes by overriding updateAdminStatus to also toggle these elements
+(function wrapUpdateAdminStatus(){
+  const original = updateAdminStatus;
+  updateAdminStatus = function(){
+    original();
+    toggleAdminElements(adminLoggedIn);
+  };
+})();
 
 </script>
 
