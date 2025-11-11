@@ -435,13 +435,14 @@ function defaultSettings(){
 saveSettingsBtn.addEventListener("click", saveSettings);
 defaultSettingsBtn.addEventListener("click", defaultSettings);
 loadSettings();
-  // -------------------- IMAGE PANEL FUNCTIONALITY --------------------
+
+// -------------------- IMAGE PANEL FUNCTIONALITY (FIXED) --------------------
 const imageInput = document.getElementById("imageInput");
 const uploadImagesBtn = document.getElementById("uploadImagesBtn");
 const clearImageTableBtn = document.getElementById("clearImageTableBtn");
 const sendImagesBtn = document.getElementById("sendImagesBtn");
 const toggleHistoryBtn = document.getElementById("toggleHistoryBtn");
-const imageTable = document.getElementById("imageTable").querySelector("tbody");
+const imageTableBody = document.getElementById("imageTable").querySelector("tbody");
 const imageMessage = document.getElementById("imageMessage");
 const notification = document.getElementById("notification");
 
@@ -449,21 +450,20 @@ let imageFiles = [];
 
 // Render image table
 function renderImageTable() {
-  imageTable.innerHTML = "";
-  imageFiles.forEach((file, index) => {
+  imageTableBody.innerHTML = "";
+  imageFiles.forEach(file => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><img src="${file.data}" style="width:60px; height:60px; object-fit:cover;"></td>
+      <td><img src="${file.data}" style="width:60px;height:60px;object-fit:cover;"></td>
       <td>${file.name}</td>
       <td>${file.status || "Pending"}</td>
     `;
-    imageTable.appendChild(tr);
+    imageTableBody.appendChild(tr);
   });
 }
 
-// Upload images to table
+// Upload images
 uploadImagesBtn.addEventListener("click", () => {
-  if (!imageInput.files.length) return;
   Array.from(imageInput.files).forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -479,44 +479,92 @@ uploadImagesBtn.addEventListener("click", () => {
 clearImageTableBtn.addEventListener("click", () => {
   imageFiles = [];
   renderImageTable();
+  notification.style.display = "none";
 });
 
 // Toggle join/leave history
 toggleHistoryBtn.addEventListener("click", () => {
-  const historyDiv = document.getElementById("history");
-  historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+  if (historyDiv.style.display === "none") {
+    historyDiv.style.display = "block";
+    toggleHistoryBtn.textContent = "Hide Join/Leave History";
+  } else {
+    historyDiv.style.display = "none";
+    toggleHistoryBtn.textContent = "Show Join/Leave History";
+  }
 });
 
 // Send images to Discord webhook
 sendImagesBtn.addEventListener("click", async () => {
-  if (!imageFiles.length) return alert("❌ No images to send!");
-  if (!webhookURLInput.value) return alert("❌ Set a webhook URL first!");
+  if (!webhookURLInput.value) return alert("❌ Please set the webhook URL in Admin Settings.");
+  if (imageFiles.length === 0) return alert("❌ No images to send.");
 
-  for (let i = 0; i < imageFiles.length; i++) {
-    const file = imageFiles[i];
+  sendImagesBtn.disabled = true;
+  for (const file of imageFiles) {
     try {
-      const form = new FormData();
-      const blob = await (await fetch(file.data)).blob();
-      form.append("file", blob, file.name);
-      form.append("payload_json", JSON.stringify({ content: imageMessage.value || "" }));
-      const res = await fetch(webhookURLInput.value, { method: "POST", body: form });
-      if (res.ok) file.status = "Sent ✅";
-      else file.status = "Failed ❌";
-    } catch (err) {
-      console.error(err);
-      file.status = "Failed ❌";
-    }
-    renderImageTable();
-  }
+      const formData = new FormData();
+      formData.append("file", dataURLtoBlob(file.data), file.name);
+      if (imageMessage.value) formData.append("content", imageMessage.value);
 
+      await fetch(webhookURLInput.value, { method: "POST", body: formData });
+      file.status = "Sent ✅";
+      renderImageTable();
+    } catch (err) {
+      file.status = "Failed ❌";
+      renderImageTable();
+      console.error("Error sending image:", err);
+    }
+  }
   notification.style.display = "block";
-  setTimeout(() => { 
-    notification.style.display = "none"; 
+  setTimeout(() => {
     imageFiles = [];
     renderImageTable();
+    notification.style.display = "none";
   }, 3000);
+  sendImagesBtn.disabled = false;
 });
 
+// Helper: Convert dataURL to Blob
+function dataURLtoBlob(dataurl) {
+  const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while(n--){
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], {type:mime});
+}
+
+// -------------------- MARKET TABLE FUNCTIONALITY --------------------
+const marketExcelInput = document.getElementById("marketExcelInput");
+const importMarketBtn = document.getElementById("importMarketBtn");
+const clearMarketBtn = document.getElementById("clearMarketBtn");
+const marketTableBody = document.getElementById("marketTable").querySelector("tbody");
+
+importMarketBtn.addEventListener("click", async () => {
+  if (!marketExcelInput.files.length) return alert("❌ Please select an Excel file.");
+  const file = marketExcelInput.files[0];
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet);
+  marketTableBody.innerHTML = "";
+  rows.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${row.Date || ""}</td><td>${row.Item || ""}</td><td>${row.Price || ""}</td>`;
+    marketTableBody.appendChild(tr);
+  });
+});
+
+clearMarketBtn.addEventListener("click", () => {
+  marketTableBody.innerHTML = "";
+  marketExcelInput.value = "";
+});
 </script>
+
+<!-- XLSX library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </body>
 </html>
+
