@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ZyG - Discord VC</title>
+  <title>ZyG - Discord VC Attendance Live</title>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,80 +12,103 @@
 </head>
 
 <body>
+  <!-- HEADER -->
   <header>
     <h1>ZyG - Discord VC Attendance Live</h1>
     <div>
-      <span id="adminStatus" class="hidden">Admin Logged In</span>
-      <button id="adminBtn">Admin Login</button>
-      <input type="password" id="adminPassword" class="hidden" placeholder="Password">
-      <button id="logoutBtn" class="hidden">Logout</button>
+      <span id="adminStatus" class="hidden font-bold text-green-400">Admin Logged In</span>
+      <button id="adminBtn" class="bg-blue-600 px-3 py-1 rounded">Admin Login</button>
+      <input type="password" id="adminPassword" class="hidden bg-gray-800 px-2 py-1 rounded" placeholder="Password">
+      <button id="logoutBtn" class="hidden bg-red-600 px-3 py-1 rounded">Logout</button>
     </div>
   </header>
 
+  <!-- MAIN CONTENT -->
   <main class="container">
-    <!-- LEFT: MAIN PANEL -->
+    <!-- LEFT PANEL: MAIN PANEL -->
     <section id="mainPanel" class="panel">
       <h2>📋 Main Panel</h2>
 
-      <!-- Announcement -->
-      <h3>Announcement</h3>
-      <div id="announcementView"></div>
-      <textarea id="announcementInput" placeholder="Write an announcement..."></textarea>
-      <button id="saveAnnouncementBtn">Save</button>
-      <button id="clearAnnouncementBtn">Clear</button>
+      <!-- ANNOUNCEMENT SECTION -->
+      <div class="section-block">
+        <h3>Announcement</h3>
+        <textarea id="announcementInput" class="hidden" placeholder="Write an announcement..."></textarea>
+        <div class="flex-row">
+          <button id="saveAnnouncementBtn" class="hidden">Save</button>
+          <button id="clearAnnouncementBtn" class="hidden">Clear</button>
+        </div>
+        <p id="announcementDisplay" class="announcement-text"></p>
+      </div>
 
-      <hr style="margin:15px 0; border-color:#30363d;">
+      <hr>
 
-      <!-- Market Section -->
-      <h3>Market Upload / Import</h3>
-      <input type="file" id="marketExcelInput" accept=".xlsx,.xls,.csv">
-      <input type="url" id="marketLinkInput" placeholder="Paste market link...">
-      <button id="importMarketBtn">Import</button>
-      <button id="clearMarketBtn">Clear</button>
+      <!-- MARKET UPLOAD SECTION -->
+      <div class="section-block">
+        <h3>Market Upload / Import</h3>
+        <input type="file" id="marketExcelInput" class="hidden" accept=".xlsx,.xls,.csv">
+        <input type="url" id="marketLinkInput" class="hidden" placeholder="Paste market link...">
+        <div class="flex-row">
+          <button id="importMarketBtn" class="hidden">Import</button>
+          <button id="clearMarketBtn" class="hidden">Clear</button>
+        </div>
 
-      <table id="marketTable">
-        <thead><tr><th>Date</th><th>Item</th><th>Price</th></tr></thead>
-        <tbody></tbody>
-      </table>
+        <table id="marketTable" class="w-full text-sm mt-2">
+          <thead>
+            <tr><th>Date</th><th>Item</th><th>Price</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-      <h3>Market Screenshots</h3>
-      <input type="file" id="marketScreensInput" accept="image/*" multiple>
-      <button id="uploadMarketScreensBtn">Upload</button>
-      <button id="clearMarketScreensBtn">Clear Screenshots</button>
-      <div id="marketScreensGallery" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+      <hr>
 
-      <h3>Reference Links</h3>
-      <input type="url" id="refLinkInput" placeholder="Add reference link...">
-      <button id="addRefBtn">Add</button>
-      <div id="refsList" style="margin-top:10px;"></div>
+      <!-- MARKET SCREENSHOTS SECTION -->
+      <div class="section-block">
+        <h3>Market Screenshots</h3>
+        <input type="file" id="marketScreensInput" class="hidden" multiple accept="image/*">
+        <div class="flex-row">
+          <button id="uploadMarketScreensBtn" class="hidden">Upload</button>
+          <button id="clearMarketScreensBtn" class="hidden">Clear Screenshots</button>
+        </div>
+
+        <table id="screenshotTable" class="w-full text-sm mt-2">
+          <thead>
+            <tr><th>Preview</th><th>Filename</th><th>Status</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <hr>
+
+      <!-- REFERENCE LINKS -->
+      <div class="section-block">
+        <h3>Reference Links</h3>
+        <input type="url" id="refLinkInput" class="hidden" placeholder="Add reference link...">
+        <button id="addRefBtn" class="hidden">Add</button>
+        <ul id="refLinksList"></ul>
+      </div>
     </section>
 
-    <!-- RIGHT: VC + IMAGE PANEL -->
+    <!-- RIGHT PANEL: LIVE VOICE CHAT -->
     <aside class="right-column">
       <section id="activeVoicePanel" class="panel">
         <h2>🟢 Live Voice Chat - Lordnine</h2>
-        <div id="vcAlert"></div>
-        <table id="active">
-          <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
+        <div id="vcAlert" class="mb-3"></div>
+        <table id="active" class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-700">
+              <th>User</th>
+              <th>Channel</th>
+              <th>Status</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
           <tbody></tbody>
         </table>
       </section>
 
-      <section id="imagePanel" class="panel hidden">
-        <h2>🖼️ Upload image/screenshot for Attendance</h2>
-        <input type="file" id="imageInput" multiple accept="image/*">
-        <button onclick="uploadImages()">Upload to Table</button>
-        <table id="imageTable">
-          <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <textarea id="imageMessage" placeholder="Optional message..."></textarea>
-        <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-        <button onclick="clearImageTable()">Clear Table</button>
-        <button onclick="toggleHistoryPanel()">Show Join/Leave History</button>
-        <div id="notification">✅ Images successfully uploaded!</div>
-        <div id="history"></div>
-      </section>
+      <div id="history" class="hidden"></div>
     </aside>
   </main>
 </body>
