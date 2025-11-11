@@ -76,6 +76,7 @@ header {
   border-radius:12px; 
   padding:20px; 
   box-sizing:border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
@@ -118,12 +119,16 @@ input[type="file"] { margin-top:10px; }
   grid-area: vc;
   height: 260px;
   overflow:auto;
+  border-bottom: 1px solid #21262d; /* thin separator line */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
 }
 
 #imagePanel {
   grid-area: image;
   height: calc(100vh - 460px);
   overflow:auto;
+  border-top: 1px solid #21262d; /* thin separator line */
+  box-shadow: 0 -1px 4px rgba(0,0,0,0.2);
 }
 
 /* ------------------ RESPONSIVE ------------------ */
@@ -193,7 +198,6 @@ input[type="file"] { margin-top:10px; }
 
 </div>
 
-<!-- ✅ ORIGINAL FUNCTIONAL JS (UNCHANGED) -->
 <!-- KEEPING ALL EXISTING JS EXACTLY THE SAME BELOW -->
 <script>
 // -------------------- SOCKET.IO --------------------
