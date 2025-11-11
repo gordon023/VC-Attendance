@@ -71,17 +71,21 @@ header {
   box-sizing:border-box;
 }
 #mainPanel { 
-  flex:2 1 600px; /* make main panel wider */
+  flex:2 1 600px; /* main panel wider */
   max-width:650px;
 }
+
 #vcPanel { 
-  flex:1 1 300px; 
+  flex:1 1 300px; /* right panel reasonable width */
   max-width:350px;
 }
+
 #imagePanel { 
   flex-basis:100%; /* full width under VC panel */
   max-width:100%;
+  margin-top:10px; /* optional spacing */
 }
+
 
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
