@@ -28,18 +28,18 @@ h1 {
 header {
   width: 100%;
   display:flex;
-  justify-content:center; 
+  justify-content:center; /* center header title */
   align-items:center;
   padding: 10px 20px;
   box-sizing: border-box;
-  position: relative; 
+  position: relative; /* for absolute positioning of admin controls */
 }
 .admin-controls {
   display:flex;
   align-items:center;
   gap:10px;
   position: absolute;
-  right: 20px; 
+  right: 20px; /* top-right corner */
   top: 50%;
   transform: translateY(-50%);
   flex-wrap: nowrap;
@@ -63,7 +63,7 @@ header {
 
 /* LEFT COLUMN */
 #mainPanel { 
-  flex: 2; 
+  flex: 2; /* takes left space */
   min-width: 400px;
 }
 
@@ -74,7 +74,6 @@ header {
   flex-direction: column;
   gap: 10px;
   min-width: 300px;
-  position: relative;
 }
 
 /* ------------------ PANEL ------------------ */
@@ -91,30 +90,12 @@ th { color:#238636; }
 .joined { color:#2ea043; }
 .left { color:#da3633; }
 #history { max-height:150px; overflow-y:auto; font-size:0.9em; }
+#vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
 textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
-button { 
-  background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; 
-  transition:0.2s; 
-}
+button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
 button:hover { background:#2ea043; }
-
-/* --------- NextMarket & Screenshot Buttons --------- */
-.tab-btn {
-  background:#0d1117;
-  border:1px solid #30363d;
-  border-radius:6px 0 0 6px;
-  color:#e6edf3;
-  padding:6px 12px;
-  cursor:pointer;
-  margin-right:-4px; 
-  transition:0.2s;
-}
-.tab-btn:last-child { border-radius:0 6px 6px 0; margin-right:0; }
-.tab-btn.active { background:#444c56; color:#fff; }
-.tab-btn:hover { background:#30363d; }
-
-/* Highlight table when tab active */
-.table-highlight { background:#2c313c; }
+.status-icons { font-size:16px; }
+input[type="file"] { margin-top:10px; }
 
 /* ------------------ RESPONSIVE ------------------ */
 @media(max-width:900px){
@@ -149,9 +130,9 @@ button:hover { background:#2ea043; }
     <button id="updateAnnouncementBtn">Update</button>
     <button id="deleteAnnouncementBtn">Delete</button>
 
-    <div style="display:flex; gap:0px; margin-top:20px;">
-      <button class="tab-btn" id="tabMarket">Next Market</button>
-      <button class="tab-btn" id="tabScreenshot">Screenshot</button>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button id="tabMarket">Next Market</button>
+      <button id="tabScreenshot">Screenshot</button>
     </div>
 
     <!-- MARKET TABLE -->
@@ -167,7 +148,7 @@ button:hover { background:#2ea043; }
 
     <!-- SCREENSHOT GALLERY -->
     <div id="screenshotTab" style="display:none; margin-top:10px;">
-      <input type="file" id="marketScreensInput" multiple accept="image/*" style="display:none;">
+      <input type="file" id="marketScreensInput" multiple accept="image/*">
       <button id="uploadMarketScreensBtn">Upload Screenshot</button>
       <button id="clearMarketScreensBtn">Clear Screenshots</button>
       <div id="screenshotGallery" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;"></div>
@@ -202,20 +183,6 @@ button:hover { background:#2ea043; }
       <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
       <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
       <div id="history" style="display:none;"></div>
-
-      <!-- -------- SETTINGS PANEL -------- -->
-      <div id="settingsPanel" style="margin-top:20px; display:block;">
-        <h3>⚙️ Admin Settings</h3>
-        <label>New Webhook URL:</label>
-        <input type="text" id="newWebhook" placeholder="Enter new webhook URL" style="width:100%; margin-bottom:6px;">
-        <label>New Voice Channel ID:</label>
-        <input type="text" id="newVoiceChannel" placeholder="Enter new voice channel ID" style="width:100%; margin-bottom:6px;">
-        <label>New Server ID:</label>
-        <input type="text" id="newServer" placeholder="Enter new server ID" style="width:100%; margin-bottom:6px;">
-        <button id="saveSettingsBtn">Save</button>
-        <button id="defaultSettingsBtn">Default</button>
-      </div>
-
     </div>
 
   </div>
@@ -224,122 +191,205 @@ button:hover { background:#2ea043; }
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-// --- ADMIN LOGIN LOGIC ---
-const adminBtn = document.getElementById('adminBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const adminStatus = document.getElementById('adminStatus');
-const imagePanel = document.getElementById('imagePanel');
-const marketScreensInput = document.getElementById('marketScreensInput');
+// -------------------- SOCKET.IO & VC --------------------
+const socket = io();
+let attendance = {};
+const activeBody = document.querySelector("#active tbody");
+const historyDiv = document.querySelector("#history");
+const vcAlert = document.getElementById("vcAlert");
 
-let isAdmin = false;
-
-adminBtn.addEventListener('click', ()=>{
-    let pwd = prompt("Enter admin password:");
-    if(pwd==="admin123"){
-        isAdmin = true;
-        adminStatus.style.display='inline';
-        logoutBtn.style.display='inline';
-        adminBtn.style.display='none';
-        imagePanel.style.display='block';
-        marketScreensInput.style.display='inline-block';
-    }
-});
-
-logoutBtn.addEventListener('click', ()=>{
-    isAdmin = false;
-    adminStatus.style.display='none';
-    logoutBtn.style.display='none';
-    adminBtn.style.display='inline-block';
-    imagePanel.style.display='none';
-    marketScreensInput.style.display='none';
-});
-
-// --- TAB BUTTONS ---
-const tabMarketBtn = document.getElementById('tabMarket');
-const tabScreenshotBtn = document.getElementById('tabScreenshot');
-const marketTabDiv = document.getElementById('marketTab');
-const screenshotTabDiv = document.getElementById('screenshotTab');
-const marketTable = document.getElementById('marketTable');
-const screenshotGallery = document.getElementById('screenshotGallery');
-
-tabMarketBtn.addEventListener('click', ()=>{
-    tabMarketBtn.classList.add('active');
-    tabScreenshotBtn.classList.remove('active');
-    marketTabDiv.style.display='block';
-    screenshotTabDiv.style.display='none';
-    marketTable.classList.add('table-highlight');
-    screenshotGallery.classList.remove('table-highlight');
-});
-
-tabScreenshotBtn.addEventListener('click', ()=>{
-    tabMarketBtn.classList.remove('active');
-    tabScreenshotBtn.classList.add('active');
-    marketTabDiv.style.display='none';
-    screenshotTabDiv.style.display='block';
-    marketTable.classList.remove('table-highlight');
-    screenshotGallery.classList.add('table-highlight');
-});
-
-// --- SETTINGS PANEL LOGIC ---
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const defaultSettingsBtn = document.getElementById('defaultSettingsBtn');
-
-let defaultSettings = {
-    webhook: "YOUR_DEFAULT_WEBHOOK",
-    voiceChannelId: "DEFAULT_VOICE_CHANNEL",
-    serverId: "DEFAULT_SERVER_ID"
-};
-let currentSettings = {...defaultSettings};
-
-saveSettingsBtn.addEventListener('click', ()=>{
-    currentSettings.webhook = document.getElementById('newWebhook').value || defaultSettings.webhook;
-    currentSettings.voiceChannelId = document.getElementById('newVoiceChannel').value || defaultSettings.voiceChannelId;
-    currentSettings.serverId = document.getElementById('newServer').value || defaultSettings.serverId;
-    alert("Settings saved!");
-});
-
-defaultSettingsBtn.addEventListener('click', ()=>{
-    currentSettings = {...defaultSettings};
-    document.getElementById('newWebhook').value = defaultSettings.webhook;
-    document.getElementById('newVoiceChannel').value = defaultSettings.voiceChannelId;
-    document.getElementById('newServer').value = defaultSettings.serverId;
-    alert("Settings reverted to default!");
-});
-
-// --- SEND IMAGES TO DISCORD ---
-async function sendImagesToDiscord(){
-    let webhookToUse = currentSettings.webhook;
-    const files = document.getElementById('imageInput').files;
-    const message = document.getElementById('imageMessage').value;
-
-    if(files.length === 0){
-        alert("No images selected!");
-        return;
-    }
-
-    for(let i = 0; i < files.length; i++){
-        const file = files[i];
-        const formData = new FormData();
-        formData.append('file', file);
-        if(message) formData.append('content', message);
-
-        try {
-            await fetch(webhookToUse, { method:'POST', body: formData });
-            console.log(`Sent ${file.name} successfully.`);
-        } catch(err){
-            console.error(`Error sending ${file.name}:`, err);
-        }
-    }
-
-    alert("All images sent!");
-    clearImageTable();
+function showVCAlert(message, type) {
+  vcAlert.textContent = message;
+  vcAlert.style.color = type==="join"?"#2ea043":"#da3633";
+  vcAlert.style.display="block";
+  setTimeout(()=>{vcAlert.style.display="none";},5000);
 }
 
-// Placeholder functions
-function uploadImages(){alert("Upload Images placeholder");}
-function clearImageTable(){document.getElementById('imageTable').querySelector('tbody').innerHTML='';}
-function toggleHistoryPanel(){ const h=document.getElementById('history'); h.style.display=h.style.display==='none'?'block':'none'; }
+function updateActive(){
+  activeBody.innerHTML="";
+  const now=new Date();
+  Object.entries(attendance.active||{}).forEach(([user,info])=>{
+    const joined=new Date(info.joinedAt||Date.now());
+    const durationSec=Math.floor((now-joined)/1000);
+    const durationText=formatDuration(durationSec);
+    const muteIcon=info.selfMute||info.serverMute?"🔇":"🎤";
+    const deafIcon=info.selfDeaf||info.serverDeaf?"🔕":"👂";
+    const statusText=`<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${user}</td><td>${info.channel||"Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
+    activeBody.appendChild(tr);
+  });
+}
 
+function updateHistory(){
+  historyDiv.innerHTML="";
+  (attendance.history||[]).slice(0,20).forEach(h=>{
+    const div=document.createElement("div");
+    const time=new Date(h.time).toLocaleTimeString();
+    const typeClass=h.type==="join"?"joined":"left";
+    const action=h.type==="join"?"joined":"left";
+    div.innerHTML=`<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+    historyDiv.appendChild(div);
+  });
+}
+
+function formatDuration(sec){
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
+
+setInterval(updateActive,1000);
+
+socket.on("connect",()=>console.log("✅ Connected to server"));
+socket.on("update",data=>{
+  const oldHistory=attendance.history||[];
+  attendance=data;
+  updateActive();
+  updateHistory();
+  let lastDisplayedTime=localStorage.getItem("lastDisplayedTime")||0;
+  const last=attendance.history[0];
+  if(last&&last.time>lastDisplayedTime){
+    const now=Date.now();
+    if(now-last.time<=5000) showVCAlert(`${last.user} ${last.type==="join"?"joined":"left"} ${last.channel}`,last.type);
+    lastDisplayedTime=last.time;
+    localStorage.setItem("lastDisplayedTime",lastDisplayedTime);
+  }
+});
+
+// -------------------- ADMIN LOGIN --------------------
+const adminBtn=document.getElementById("adminBtn");
+const adminPassword=document.getElementById("adminPassword");
+const logoutBtn=document.getElementById("logoutBtn");
+const imagePanel=document.getElementById("imagePanel");
+const adminStatus=document.getElementById("adminStatus");
+const mainPanel=document.getElementById("mainPanel");
+
+let adminLoggedIn=localStorage.getItem("adminLoggedIn")==="true";
+
+function updateAdminUI(){
+  adminStatus.style.display=adminLoggedIn?"inline-block":"none";
+  logoutBtn.style.display=adminLoggedIn?"inline-block":"none";
+  adminBtn.style.display=adminLoggedIn?"none":"inline-block";
+  imagePanel.style.display=adminLoggedIn?"block":"none";
+
+  // ONLY announcements + tab buttons visible to visitors
+  mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn, #uploadMarketScreensBtn, #clearMarketScreensBtn").forEach(el=>{
+    if(adminLoggedIn) el.style.display="";
+    else if(el.id==="addAnnouncementBtn" || el.id==="editAnnouncementBtn" || el.id==="updateAnnouncementBtn" || el.id==="deleteAnnouncementBtn") el.style.display="none";
+    else el.style.display="none";
+  });
+
+  adminPassword.style.display="none";
+  adminPassword.value="";
+}
+
+// -------------------- TAB SWITCH (VISITOR + ADMIN) --------------------
+const tabMarket=document.getElementById("tabMarket");
+const tabScreenshot=document.getElementById("tabScreenshot");
+const marketTab=document.getElementById("marketTab");
+const screenshotTab=document.getElementById("screenshotTab");
+
+tabMarket.addEventListener("click",()=>{
+  marketTab.style.display="block";
+  screenshotTab.style.display="none";
+});
+
+tabScreenshot.addEventListener("click",()=>{
+  marketTab.style.display="none";
+  screenshotTab.style.display="block";
+});
+
+// -------------------- ANNOUNCEMENTS --------------------
+let announcementText=localStorage.getItem("announcementText")||"";
+const announcementDisplay=document.getElementById("announcementDisplay");
+const announcementInput=document.getElementById("announcementInput");
+
+function renderAnnouncement(){
+  announcementDisplay.textContent=announcementText;
+  announcementInput.value=announcementText;
+}
+renderAnnouncement();
+
+document.getElementById("addAnnouncementBtn").addEventListener("click",()=>{
+  announcementText=announcementInput.value.trim();
+  localStorage.setItem("announcementText",announcementText);
+  renderAnnouncement();
+});
+
+document.getElementById("editAnnouncementBtn").addEventListener("click",()=>{ announcementInput.value=announcementText; });
+document.getElementById("updateAnnouncementBtn").addEventListener("click",()=>{
+  announcementText=announcementInput.value.trim();
+  localStorage.setItem("announcementText",announcementText);
+  renderAnnouncement();
+});
+document.getElementById("deleteAnnouncementBtn").addEventListener("click",()=>{
+  announcementText="";
+  localStorage.removeItem("announcementText");
+  renderAnnouncement();
+});
+
+// -------------------- SCREENSHOT DISPLAY --------------------
+const screenshotInput=document.getElementById("marketScreensInput");
+const screenshotGallery=document.getElementById("screenshotGallery");
+let screenshots=JSON.parse(localStorage.getItem("screenshots")||"[]");
+
+function renderScreenshots(){
+  screenshotGallery.innerHTML="";
+  screenshots.forEach(img=>{
+    const imgEl=document.createElement("img");
+    imgEl.src=img;
+    imgEl.style.width="80px";
+    imgEl.style.height="80px";
+    imgEl.style.objectFit="cover";
+    imgEl.style.cursor="pointer";
+    imgEl.title="Click to view full image";
+    imgEl.addEventListener("click",()=>window.open(img,"_blank"));
+    screenshotGallery.appendChild(imgEl);
+  });
+}
+renderScreenshots();
+
+document.getElementById("uploadMarketScreensBtn").addEventListener("click",()=>{
+  const files=Array.from(screenshotInput.files);
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      screenshots.push(e.target.result);
+      localStorage.setItem("screenshots",JSON.stringify(screenshots));
+      renderScreenshots();
+    };
+    reader.readAsDataURL(file);
+  });
+  screenshotInput.value="";
+});
+
+document.getElementById("clearMarketScreensBtn").addEventListener("click",()=>{
+  screenshots=[];
+  localStorage.removeItem("screenshots");
+  renderScreenshots();
+});
+
+// -------------------- INITIALIZE --------------------
+updateAdminUI();
+
+// Admin login events
+adminBtn.addEventListener("click",()=>{ adminPassword.style.display="inline-block"; adminPassword.focus(); });
+adminPassword.addEventListener("keyup",e=>{
+  if(e.key==="Enter"){
+    if(adminPassword.value==="0212"){
+      adminLoggedIn=true;
+      localStorage.setItem("adminLoggedIn","true");
+      updateAdminUI();
+      alert("✅ Admin logged in!");
+    } else { alert("❌ Incorrect password"); adminPassword.value=""; }
+  }
+});
+logoutBtn.addEventListener("click",()=>{
+  adminLoggedIn=false;
+  localStorage.setItem("adminLoggedIn","false");
+  updateAdminUI();
+  alert("✅ Logged out successfully!");
+});
 </script>
 </body>
 </html>
