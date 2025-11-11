@@ -53,21 +53,21 @@ header {
 .admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
 
 /* ------------------ CONTAINER ------------------ */
-.container {
-  display: flex;
-  gap: 20px;
-  width: 95%;
-  box-sizing: border-box;
+.container { 
+  display:flex; 
+  gap:20px; 
+  width:95%; 
+  box-sizing:border-box;
   align-items: flex-start;
 }
 
 /* LEFT COLUMN */
-#mainPanel {
-  flex: 2;       /* takes more space */
+#mainPanel { 
+  flex: 2; /* takes left space */
   min-width: 400px;
 }
 
-/* RIGHT COLUMN: stack VC and Image panels vertically */
+/* RIGHT COLUMN */
 .rightColumn {
   flex: 1;
   display: flex;
@@ -76,18 +76,14 @@ header {
   min-width: 300px;
 }
 
-#vcPanel {
-  flex: none;     /* fixed height */
-  max-width: 100%;
+/* ------------------ PANEL ------------------ */
+.panel { 
+  background:#161b22; 
+  border:1px solid #30363d; 
+  border-radius:12px; 
+  padding:20px; 
+  box-sizing:border-box;
 }
-
-#imagePanel {
-  flex: none;
-  max-width: 100%;
-}
-
-
-
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
 th { color:#238636; }
@@ -106,17 +102,14 @@ input[type="file"] { margin-top:10px; }
   .container{flex-direction:column; align-items:center;}
   header{justify-content:center; padding:10px;}
   .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
-  #mainPanel, #vcPanel, #imagePanel{max-width:95%;}
+  #mainPanel, .rightColumn{min-width:95%;}
 }
-
-/* ------------------ TAB SWITCH ------------------ */
-#marketTab, #screenshotTab { margin-top:10px; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>ZyG - Discord VC Attendance FIXING</h1>
+  <h1>ZyG - Discord VC Attendance Live</h1>
   <div class="admin-controls">
     <span id="adminStatus" style="display:none; font-weight:bold; color:#2ea043;">Admin Logged In</span>
     <button id="adminBtn">Admin Login</button>
@@ -127,7 +120,7 @@ input[type="file"] { margin-top:10px; }
 
 <div class="container">
 
-  <!-- MAIN PANEL LEFT -->
+  <!-- LEFT: Main Panel -->
   <div class="panel" id="mainPanel">
     <h2>📢 Announcements</h2>
     <div id="announcementDisplay"></div>
@@ -162,39 +155,46 @@ input[type="file"] { margin-top:10px; }
     </div>
   </div>
 
-  <!-- ACTIVE VC PANEL RIGHT -->
-  <div class="panel" id="vcPanel">
-    <h2>🟢 Live Voice Chat - Lordnine</h2>
-    <div id="vcAlert"></div>
-    <table id="active">
-      <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <!-- RIGHT COLUMN: VC + Image stacked -->
+  <div class="rightColumn">
 
-  <!-- IMAGE UPLOAD PANEL UNDER VC (ADMIN ONLY) -->
-  <div class="panel" id="imagePanel" style="display:none;">
-    <h2>🖼️ Upload image/screenshot for Attendance</h2>
-    <input type="file" id="imageInput" multiple accept="image/*">
-    <button onclick="uploadImages()">Upload to Table</button>
-    <table id="imageTable">
-      <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
-    <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-    <button onclick="clearImageTable()"> Clear Table</button>
-    <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
-    <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-    <div id="history" style="display:none;"></div>
-  </div>
+    <!-- ACTIVE VC PANEL -->
+    <div class="panel" id="vcPanel">
+      <h2>🟢 Live Voice Chat - Lordnine</h2>
+      <div id="vcAlert"></div>
+      <table id="active">
+        <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
+    <!-- IMAGE UPLOAD PANEL UNDER VC (ADMIN ONLY) -->
+    <div class="panel" id="imagePanel" style="display:none;">
+      <h2>🖼️ Upload image/screenshot for Attendance</h2>
+      <input type="file" id="imageInput" multiple accept="image/*">
+      <button onclick="uploadImages()">Upload to Table</button>
+      <table id="imageTable">
+        <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+      <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+      <button onclick="clearImageTable()"> Clear Table</button>
+      <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
+      <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+      <div id="history" style="display:none;"></div>
+    </div>
+
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-// -------------------- SOCKET.IO & VC --------------------
+// --- ALL YOUR ORIGINAL JS BELOW ---
+// NO CHANGES MADE TO FUNCTIONALITY
+// (Your entire script as it was previously)
+  // -------------------- SOCKET.IO & VC --------------------
 const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
