@@ -224,52 +224,8 @@ function renderImageTable(){imageTableBody.innerHTML="";imageFiles.forEach(f=>{c
 uploadImagesBtn.onclick=()=>{Array.from(imageInput.files).forEach(f=>{const r=new FileReader();r.onload=e=>{imageFiles.push({name:f.name,data:e.target.result,status:"Pending"});renderImageTable();};r.readAsDataURL(f);});imageInput.value="";};
 clearImageTableBtn.onclick=()=>{imageFiles=[];renderImageTable();notification.style.display="none";};
 toggleHistoryBtn.onclick=()=>{if(historyDiv.style.display==="none"){historyDiv.style.display="block";toggleHistoryBtn.textContent="Hide Join/Leave History";}else{historyDiv.style.display="none";toggleHistoryBtn.textContent="Show Join/Leave History";}};
-sendImagesBtn.onclick=async()=>{const webhook=localStorage.getItem("webhookURL")||defaults.webhookURL;if(!webhook)return alert("Set webhook first!");if(imageFiles.length===0)return alert("No images.");sendImagesBtn.disabled=true;for(const f of imageFiles){try
-// Continue from your last line inside sendImagesBtn.onclick
-{
-  const form = new FormData();
-  form.append("file", dataURLtoBlob(f.data), f.name);
-  if (imageMessage.value.trim()) {
-    form.append("content", imageMessage.value.trim());
-  }
-
-  const response = await fetch(webhook, {
-    method: "POST",
-    body: form
-  });
-
-  if (response.ok) {
-    f.status = "Sent ✅";
-  } else {
-    f.status = "Failed ❌";
-  }
-  renderImageTable();
-} catch (err) {
-  console.error("Upload failed:", err);
-  f.status = "Error ❌";
-  renderImageTable();
-}
-
-sendImagesBtn.disabled = false;
-notification.style.display = "block";
-setTimeout(() => {
-  notification.style.display = "none";
-  imageFiles = [];
-  renderImageTable();
-}, 5000);
-};
-
-// Helper: convert dataURL to Blob for Discord upload
-function dataURLtoBlob(dataURL) {
-  const parts = dataURL.split(",");
-  const mime = parts[0].match(/:(.*?);/)[1];
-  const binary = atob(parts[1]);
-  const array = [];
-  for (let i = 0; i < binary.length; i++) {
-    array.push(binary.charCodeAt(i));
-  }
-  return new Blob([new Uint8Array(array)], { type: mime });
-}
+sendImagesBtn.onclick=async()=>{const webhook=localStorage.getItem("webhookURL")||defaults.webhookURL;if(!webhook)return alert("Set webhook first!");if(imageFiles.length===0)return alert("No images.");sendImagesBtn.disabled=true;for(const f of imageFiles){try{const form=new FormData();form.append("file",dataURLtoBlob(f.data),f.name);if(imageMessage.value)form.append("content",imageMessage.value);await fetch(webhook,{method:"POST",body:form});f.status="Sent ✅";renderImageTable();}catch(err){f.status="Failed ❌";renderImageTable();console.error(err);}}notification.style.display="block";setTimeout(()=>{imageFiles=[];renderImageTable();notification.style.display="none";},3000);sendImagesBtn.disabled=false;};
+function dataURLtoBlob(d){const a=d.split(','),m=a[0].match(/:(.*?);/)[1],b=atob(a[1]),n=b.length,u8=new Uint8Array(n);for(let i=0;i<n;i++)u8[i]=b.charCodeAt(i);return new Blob([u8],{type:m});}
 </script>
 </body>
 </html>
