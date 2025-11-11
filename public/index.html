@@ -570,6 +570,101 @@ clearMarketBtn.addEventListener("click", () => {
   marketTableBody.innerHTML = "";
   marketExcelInput.value = "";
 });
+  // --- FIXED IMAGE PANEL BUTTONS (no other code changed) ---
+document.addEventListener("DOMContentLoaded", () => {
+  const imageInput = document.getElementById("imageInput");
+  const uploadImagesBtn = document.getElementById("uploadImagesBtn");
+  const clearImageTableBtn = document.getElementById("clearImageTableBtn");
+  const sendImagesBtn = document.getElementById("sendImagesBtn");
+  const toggleHistoryBtn = document.getElementById("toggleHistoryBtn");
+  const imageTableBody = document.getElementById("imageTable").querySelector("tbody");
+  const imageMessage = document.getElementById("imageMessage");
+  const notification = document.getElementById("notification");
+  let imageFiles = [];
+
+  function renderImageTable() {
+    imageTableBody.innerHTML = "";
+    imageFiles.forEach(file => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><img src="${file.data}" style="width:60px;height:60px;object-fit:cover;"></td>
+        <td>${file.name}</td>
+        <td>${file.status || "Pending"}</td>
+      `;
+      imageTableBody.appendChild(tr);
+    });
+  }
+
+  uploadImagesBtn.addEventListener("click", () => {
+    Array.from(imageInput.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        imageFiles.push({ name: file.name, data: e.target.result, status: "Pending" });
+        renderImageTable();
+      };
+      reader.readAsDataURL(file);
+    });
+    imageInput.value = "";
+  });
+
+  clearImageTableBtn.addEventListener("click", () => {
+    imageFiles = [];
+    renderImageTable();
+    notification.style.display = "none";
+  });
+
+  toggleHistoryBtn.addEventListener("click", () => {
+    const historyDiv = document.getElementById("history");
+    if (historyDiv.style.display === "none") {
+      historyDiv.style.display = "block";
+      toggleHistoryBtn.textContent = "Hide Join/Leave History";
+    } else {
+      historyDiv.style.display = "none";
+      toggleHistoryBtn.textContent = "Show Join/Leave History";
+    }
+  });
+
+  sendImagesBtn.addEventListener("click", async () => {
+    const webhook = document.getElementById("webhookURL").value;
+    if (!webhook) return alert("❌ Please set the webhook URL in Admin Settings.");
+    if (imageFiles.length === 0) return alert("❌ No images to send.");
+
+    sendImagesBtn.disabled = true;
+    for (const file of imageFiles) {
+      try {
+        const formData = new FormData();
+        formData.append("file", dataURLtoBlob(file.data), file.name);
+        if (imageMessage.value) formData.append("content", imageMessage.value);
+
+        await fetch(webhook, { method: "POST", body: formData });
+        file.status = "Sent ✅";
+        renderImageTable();
+      } catch (err) {
+        file.status = "Failed ❌";
+        renderImageTable();
+        console.error("Error sending image:", err);
+      }
+    }
+    notification.style.display = "block";
+    setTimeout(() => {
+      imageFiles = [];
+      renderImageTable();
+      notification.style.display = "none";
+    }, 3000);
+    sendImagesBtn.disabled = false;
+  });
+
+  function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(','),
+      mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[1]),
+      n = bstr.length,
+      u8arr = new Uint8Array(n);
+    for (let i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
+    return new Blob([u8arr], { type: mime });
+  }
+});
+
 </script>
 
 <!-- XLSX library -->
