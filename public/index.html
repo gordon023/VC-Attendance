@@ -414,27 +414,36 @@ const serverIDInput = document.getElementById("serverID");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 const defaultSettingsBtn = document.getElementById("defaultSettingsBtn");
 
-function loadSettings(){
-  webhookURLInput.value = localStorage.getItem("webhookURL") || "";
-  voiceChannelInput.value = localStorage.getItem("voiceChannelID") || "";
-  serverIDInput.value = localStorage.getItem("serverID") || "";
+function loadSettings() {
+  const defaults = {
+    webhookURL: "https://discord.com/api/webhooks/1433449406056763557/nifC_lCD78cMTOoMY6ryDBlain76udKiIEVOitIWT_n8XqygjGj_GWU0zDEf8v6GTxGu",
+    voiceChannelID: "1038275000697901110",
+    serverID: "1038275000697901106"
+  };
+
+  // Load from localStorage or fallback to defaults
+  webhookURLInput.value = localStorage.getItem("webhookURL") || defaults.webhookURL;
+  voiceChannelInput.value = localStorage.getItem("voiceChannelID") || defaults.voiceChannelID;
+  serverIDInput.value = localStorage.getItem("serverID") || defaults.serverID;
+
+  // Store defaults if none exist (ensures always available)
+  if (!localStorage.getItem("webhookURL")) localStorage.setItem("webhookURL", defaults.webhookURL);
+  if (!localStorage.getItem("voiceChannelID")) localStorage.setItem("voiceChannelID", defaults.voiceChannelID);
+  if (!localStorage.getItem("serverID")) localStorage.setItem("serverID", defaults.serverID);
 }
-function saveSettings(){
+
+saveSettingsBtn.addEventListener("click", () => {
   localStorage.setItem("webhookURL", webhookURLInput.value);
   localStorage.setItem("voiceChannelID", voiceChannelInput.value);
   localStorage.setItem("serverID", serverIDInput.value);
   alert("✅ Settings saved!");
-}
-function defaultSettings(){
-  localStorage.removeItem("webhookURL");
-  localStorage.removeItem("voiceChannelID");
-  localStorage.removeItem("serverID");
-  loadSettings();
-  alert("✅ Settings reset to default!");
-}
-saveSettingsBtn.addEventListener("click", saveSettings);
+});
+
 defaultSettingsBtn.addEventListener("click", defaultSettings);
+
+// Load settings when page loads
 loadSettings();
+
 
 // -------------------- IMAGE PANEL FUNCTIONALITY (FIXED) --------------------
 const imageInput = document.getElementById("imageInput");
