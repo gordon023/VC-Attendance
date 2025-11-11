@@ -1,377 +1,198 @@
-// ================= SOCKET.IO =================
-const socket = io();
-let attendance = {};
-const activeBody = document.querySelector("#active tbody");
-const historyDiv = document.querySelector("#history");
-const vcAlert = document.getElementById("vcAlert");
+document.addEventListener("DOMContentLoaded", () => {
 
-// -------- VC ALERT --------
-function showVCAlert(message, type) {
-  vcAlert.textContent = message;
-  vcAlert.style.color = type === "join" ? "#2ea043" : "#da3633";
-  vcAlert.style.display = "block";
-  setTimeout(() => (vcAlert.style.display = "none"), 5000);
-}
+  // -------------------- SOCKET.IO --------------------
+  const socket = io();
+  let attendance = {};
+  const activeBody = document.querySelector("#active tbody");
+  const historyDiv = document.querySelector("#history");
+  const vcAlert = document.getElementById("vcAlert");
 
-// -------- ACTIVE VC --------
-function updateActive() {
-  activeBody.innerHTML = "";
-  const now = new Date();
-  Object.entries(attendance.active || {}).forEach(([user, info]) => {
-    const joined = new Date(info.joinedAt || Date.now());
-    const durationSec = Math.floor((now - joined) / 1000);
-    const durationText = formatDuration(durationSec);
-    const muteIcon = info.selfMute || info.serverMute ? "🔇" : "🎤";
-    const deafIcon = info.selfDeaf || info.serverDeaf ? "🔕" : "👂";
-    const statusText = `<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${user}</td><td>${info.channel || "Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
-    activeBody.appendChild(tr);
-  });
-}
-
-function updateHistory() {
-  historyDiv.innerHTML = "";
-  (attendance.history || []).slice(0, 20).forEach((h) => {
-    const div = document.createElement("div");
-    const time = new Date(h.time).toLocaleTimeString();
-    const typeClass = h.type === "join" ? "joined" : "left";
-    const action = h.type === "join" ? "joined" : "left";
-    div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
-    historyDiv.appendChild(div);
-  });
-}
-
-function formatDuration(sec) {
-  const h = Math.floor(sec / 3600),
-    m = Math.floor((sec % 3600) / 60),
-    s = sec % 60;
-  return `${h.toString().padStart(2, "0")}:${m
-    .toString()
-    .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
-
-setInterval(updateActive, 1000);
-
-socket.on("connect", () => console.log("✅ Connected to server"));
-socket.on("update", (data) => {
-  attendance = data;
-  updateActive();
-  updateHistory();
-
-  // smooth VC alert
-  const last = attendance.history?.[0];
-  if (last) {
-    const shown = +localStorage.getItem("lastDisplayedTime") || 0;
-    if (last.time > shown && Date.now() - last.time < 5000) {
-      showVCAlert(
-        `${last.user} ${last.type === "join" ? "joined" : "left"} ${last.channel}`,
-        last.type
-      );
-      localStorage.setItem("lastDisplayedTime", last.time);
-    }
+  // -------------------- VC ALERT --------------------
+  function showVCAlert(message, type) {
+    vcAlert.textContent = message;
+    vcAlert.style.color = type === "join" ? "#2ea043" : "#da3633";
+    vcAlert.style.display = "block";
+    setTimeout(() => { vcAlert.style.display = "none"; }, 5000);
   }
-});
 
-// ================= IMAGE UPLOADER =================
-const imageInput = document.getElementById("imageInput");
-const imageTableBody = document.querySelector("#imageTable tbody");
-const notification = document.getElementById("notification");
-const messageInput = document.getElementById("imageMessage");
-let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
-renderImageTable();
+  // -------------------- ACTIVE VC --------------------
+  function formatDuration(sec) {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
 
-function uploadImages() {
-  const files = Array.from(imageInput.files);
-  files.forEach((file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImages.push({
-        name: file.name,
-        dataURL: e.target.result,
-        status: "Pending",
-      });
-      saveAndRender();
-    };
-    reader.readAsDataURL(file);
+  function updateActive() {
+    activeBody.innerHTML = "";
+    const now = new Date();
+    Object.entries(attendance.active || {}).forEach(([user, info]) => {
+      const joined = new Date(info.joinedAt || Date.now());
+      const durationSec = Math.floor((now - joined) / 1000);
+      const durationText = formatDuration(durationSec);
+      const muteIcon = info.selfMute || info.serverMute ? "🔇" : "🎤";
+      const deafIcon = info.selfDeaf || info.serverDeaf ? "🔕" : "👂";
+      const statusText = `<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${user}</td><td>${info.channel || "Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
+      activeBody.appendChild(tr);
+    });
+  }
+
+  function updateHistory() {
+    historyDiv.innerHTML = "";
+    (attendance.history || []).slice(0, 20).forEach(h => {
+      const div = document.createElement("div");
+      const time = new Date(h.time).toLocaleTimeString();
+      const typeClass = h.type === "join" ? "joined" : "left";
+      const action = h.type === "join" ? "joined" : "left";
+      div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+      historyDiv.appendChild(div);
+    });
+  }
+
+  setInterval(updateActive, 1000);
+
+  socket.on("connect", () => console.log("✅ Connected to server"));
+  socket.on("update", (data) => {
+    const oldHistory = attendance.history || [];
+    attendance = data;
+    updateActive();
+    updateHistory();
+
+    let lastDisplayedTime = localStorage.getItem("lastDisplayedTime") || 0;
+    const last = attendance.history[0];
+    if (last && last.time > lastDisplayedTime) {
+      const now = Date.now();
+      if (now - last.time <= 5000) {
+        showVCAlert(`${last.user} ${last.type === "join" ? "joined" : "left"} ${last.channel}`, last.type);
+      }
+      lastDisplayedTime = last.time;
+      localStorage.setItem("lastDisplayedTime", lastDisplayedTime);
+    }
   });
-  imageInput.value = "";
-}
 
-function renderImageTable() {
-  imageTableBody.innerHTML = "";
-  uploadedImages.forEach((img) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td><td>${img.name}</td><td>${img.status}</td>`;
-    imageTableBody.appendChild(tr);
-  });
-}
+  // -------------------- IMAGE UPLOADER --------------------
+  const imageInput = document.getElementById("marketScreensInput");
+  const imageTableBody = document.querySelector("#screenshotTable tbody");
+  const notification = document.getElementById("notification") || document.createElement("div");
+  const messageInput = document.getElementById("imageMessage") || { value: "Attendance Today has been uploaded!" };
+  let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
 
-function saveAndRender() {
-  localStorage.setItem("uploadedImages", JSON.stringify(uploadedImages));
-  renderImageTable();
-}
+  function renderImageTable() {
+    imageTableBody.innerHTML = "";
+    uploadedImages.forEach(img => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td><td>${img.name}</td><td>${img.status}</td>`;
+      imageTableBody.appendChild(tr);
+    });
+  }
 
-function clearImageTable() {
-  uploadedImages = [];
-  saveAndRender();
-  notification.style.display = "none";
-  messageInput.value = "";
-}
+  function saveAndRender() {
+    localStorage.setItem("uploadedImages", JSON.stringify(uploadedImages));
+    renderImageTable();
+  }
 
-async function captureVCPannel() {
-  const panel = document.querySelector(".panel:first-child");
-  const canvas = await html2canvas(panel);
-  const dataURL = canvas.toDataURL("image/png");
-  uploadedImages.push({
-    name: `VC_Attendance_${Date.now()}.png`,
-    dataURL,
-    status: "Pending",
-  });
-  saveAndRender();
-}
+  function uploadImages() {
+    const files = Array.from(imageInput.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending" });
+        saveAndRender();
+      };
+      reader.readAsDataURL(file);
+    });
+    imageInput.value = "";
+  }
 
-async function sendImagesToDiscord() {
-  if (uploadedImages.length === 0) return alert("No images to send!");
-  const message =
-    messageInput.value.trim() || "Attendance Today has been uploaded!";
-  await captureVCPannel();
-  fetch("https://vc-attendance.onrender.com/upload-images", {
-    method: "POST",
-    body: JSON.stringify({ images: uploadedImages, message }),
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((r) => r.json())
-    .then((res) => {
+  async function captureVCPannel() {
+    const panel = document.querySelector(".panel:first-child");
+    const canvas = await html2canvas(panel);
+    const dataURL = canvas.toDataURL("image/png");
+    uploadedImages.push({ name: `VC_Attendance_${Date.now()}.png`, dataURL, status: "Pending" });
+    saveAndRender();
+  }
+
+  async function sendImagesToDiscord() {
+    if (uploadedImages.length === 0) return alert("No images to send!");
+    const message = messageInput.value.trim() || "Attendance Today has been uploaded!";
+    await captureVCPannel();
+    fetch("https://vc-attendance.onrender.com/upload-images", {
+      method: "POST",
+      body: JSON.stringify({ images: uploadedImages, message }),
+      headers: { "Content-Type": "application/json" }
+    }).then(res => res.json()).then(res => {
       if (res.success) {
-        uploadedImages.forEach((i) => (i.status = "Sent"));
+        uploadedImages.forEach(img => img.status = "Sent");
         saveAndRender();
         notification.style.display = "block";
-        setTimeout(() => clearImageTable(), 15000);
+        setTimeout(() => {
+          uploadedImages = [];
+          saveAndRender();
+          notification.style.display = "none";
+        }, 15000);
       } else alert("Failed to send images.");
-    })
-    .catch(console.error);
-}
-
-function toggleHistoryPanel() {
-  historyDiv.style.display =
-    historyDiv.style.display === "none" ? "block" : "none";
-}
-
-// ================= ADMIN LOGIN =================
-
-// -------------------- ADMIN LOGIN --------------------
-const adminBtn = document.getElementById("adminBtn");
-const adminPassword = document.getElementById("adminPassword");
-const logoutBtn = document.getElementById("logoutBtn");
-const adminStatus = document.getElementById("adminStatus");
-const imagePanel = document.getElementById("imagePanel"); // optional, if you later re-add it
-
-let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
-
-// all inputs/buttons that only admins can see
-const adminElements = [
-  // Announcement
-  document.getElementById("announcementInput"),
-  document.getElementById("saveAnnouncementBtn"),
-  document.getElementById("clearAnnouncementBtn"),
-  // Market upload
-  document.getElementById("marketExcelInput"),
-  document.getElementById("marketLinkInput"),
-  document.getElementById("importMarketBtn"),
-  document.getElementById("clearMarketBtn"),
-  // Market screenshots
-  document.getElementById("marketScreensInput"),
-  document.getElementById("uploadMarketScreensBtn"),
-  document.getElementById("clearMarketScreensBtn"),
-  // References
-  document.getElementById("refLinkInput"),
-  document.getElementById("addRefBtn")
-];
-
-// show/hide admin-only controls
-function toggleAdminElements(show) {
-  adminElements.forEach(el => { if (el) el.classList.toggle("hidden", !show); });
-}
-
-// update label + visibility
-function updateAdminUI() {
-  adminStatus.classList.toggle("hidden", !adminLoggedIn);
-  adminBtn.classList.toggle("hidden", adminLoggedIn);
-  logoutBtn.classList.toggle("hidden", !adminLoggedIn);
-  toggleAdminElements(adminLoggedIn);
-}
-
-// initial UI state
-updateAdminUI();
-
-// show password input
-adminBtn.addEventListener("click", () => {
-  adminPassword.classList.remove("hidden");
-  adminPassword.focus();
-});
-
-// check password on Enter
-adminPassword.addEventListener("keyup", (e) => {
-  if (e.key === "Enter") {
-    if (adminPassword.value.trim() === "0212") {
-      adminLoggedIn = true;
-      localStorage.setItem("adminLoggedIn", "true");
-      adminPassword.value = "";
-      adminPassword.classList.add("hidden");
-      updateAdminUI();
-    } else {
-      alert("❌ Incorrect password");
-    }
+    }).catch(err => console.error(err));
   }
-});
 
-// logout
-logoutBtn.addEventListener("click", () => {
-  adminLoggedIn = false;
-  localStorage.setItem("adminLoggedIn", "false");
-  updateAdminUI();
-});
+  // -------------------- ADMIN LOGIN --------------------
+  const adminBtn = document.getElementById("adminBtn");
+  const adminPassword = document.getElementById("adminPassword");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const adminStatus = document.getElementById("adminStatus");
+  let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
-
-
-// ================= MAIN PANEL (Announcement / Market / References) =================
-const annInput = document.getElementById("announcementInput");
-const annSave = document.getElementById("saveAnnouncementBtn");
-const annClear = document.getElementById("clearAnnouncementBtn");
-const annDisplay = document.getElementById("announcementDisplay");
-
-const marketExcel = document.getElementById("marketExcelInput");
-const marketLink = document.getElementById("marketLinkInput");
-const marketImport = document.getElementById("importMarketBtn");
-const marketClear = document.getElementById("clearMarketBtn");
-const marketTableBody = document.querySelector("#marketTable tbody");
-
-const ssInput = document.getElementById("marketScreensInput");
-const ssUpload = document.getElementById("uploadMarketScreensBtn");
-const ssClear = document.getElementById("clearMarketScreensBtn");
-const ssTableBody = document.querySelector("#screenshotTable tbody");
-
-const refInput = document.getElementById("refLinkInput");
-const refAdd = document.getElementById("addRefBtn");
-const refList = document.getElementById("refLinksList");
-
-function toggleAdminPanels(show) {
-  const ids = [
-    annInput,
-    annSave,
-    annClear,
-    marketExcel,
-    marketLink,
-    marketImport,
-    marketClear,
-    ssInput,
-    ssUpload,
-    ssClear,
-    refInput,
-    refAdd,
+  const adminElements = [
+    document.getElementById("announcementInput"),
+    document.getElementById("saveAnnouncementBtn"),
+    document.getElementById("clearAnnouncementBtn"),
+    document.getElementById("marketExcelInput"),
+    document.getElementById("marketLinkInput"),
+    document.getElementById("importMarketBtn"),
+    document.getElementById("clearMarketBtn"),
+    document.getElementById("marketScreensInput"),
+    document.getElementById("uploadMarketScreensBtn"),
+    document.getElementById("clearMarketScreensBtn"),
+    document.getElementById("refLinkInput"),
+    document.getElementById("addRefBtn")
   ];
-  ids.forEach((el) => {
-    if (el) el.style.display = show ? "block" : "none";
-  });
-}
 
-// -------- Announcement --------
-annSave?.addEventListener("click", () => {
-  const text = annInput.value.trim();
-  if (text) {
-    localStorage.setItem("announcement", text);
-    annDisplay.textContent = text;
-    annInput.value = "";
+  function toggleAdminElements(show) {
+    adminElements.forEach(el => { if (el) el) el.classList.toggle("hidden", !show); });
   }
-});
-annClear?.addEventListener("click", () => {
-  localStorage.removeItem("announcement");
-  annDisplay.textContent = "";
-});
-(function loadAnnouncement() {
-  const text = localStorage.getItem("announcement");
-  if (text) annDisplay.textContent = text;
-})();
 
-// -------- Market Import --------
-marketImport?.addEventListener("click", () => {
-  const file = marketExcel.files[0];
-  if (!file) return alert("Please upload an Excel file.");
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(sheet);
-    localStorage.setItem("marketData", JSON.stringify(json));
-    loadMarketTable();
-  };
-  reader.readAsArrayBuffer(file);
-});
-marketClear?.addEventListener("click", () => {
-  localStorage.removeItem("marketData");
-  marketTableBody.innerHTML = "";
-});
-function loadMarketTable() {
-  const data = JSON.parse(localStorage.getItem("marketData") || "[]");
-  marketTableBody.innerHTML = "";
-  data.forEach((r) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${r.Date || ""}</td><td>${r.Item || ""}</td><td>${r.Price || ""}</td>`;
-    marketTableBody.appendChild(tr);
-  });
-}
-loadMarketTable();
-
-// -------- Market Screenshots --------
-ssUpload?.addEventListener("click", () => {
-  const files = [...ssInput.files];
-  if (!files.length) return;
-  const stored = JSON.parse(localStorage.getItem("marketScreens") || "[]");
-  files.forEach((file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      stored.push(e.target.result);
-      localStorage.setItem("marketScreens", JSON.stringify(stored));
-      loadMarketScreens();
-    };
-    reader.readAsDataURL(file);
-  });
-});
-ssClear?.addEventListener("click", () => {
-  localStorage.removeItem("marketScreens");
-  ssTableBody.innerHTML = "";
-});
-function loadMarketScreens() {
-  const imgs = JSON.parse(localStorage.getItem("marketScreens") || "[]");
-  ssTableBody.innerHTML = "";
-  imgs.forEach((src) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td><img src="${src}" style="width:60px"></td><td>Saved</td>`;
-    ssTableBody.appendChild(tr);
-  });
-}
-loadMarketScreens();
-
-// -------- Reference Links --------
-refAdd?.addEventListener("click", () => {
-  const val = refInput.value.trim();
-  if (val) {
-    const links = JSON.parse(localStorage.getItem("refLinks") || "[]");
-    links.push(val);
-    localStorage.setItem("refLinks", JSON.stringify(links));
-    refInput.value = "";
-    loadRefLinks();
+  function updateAdminUI() {
+    adminStatus.classList.toggle("hidden", !adminLoggedIn);
+    adminBtn.classList.toggle("hidden", adminLoggedIn);
+    logoutBtn.classList.toggle("hidden", !adminLoggedIn);
+    toggleAdminElements(adminLoggedIn);
   }
-});
-function loadRefLinks() {
-  const links = JSON.parse(localStorage.getItem("refLinks") || "[]");
-  refList.innerHTML = "";
-  links.forEach((url) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
-    refList.appendChild(li);
+
+  updateAdminUI();
+
+  adminBtn.addEventListener("click", () => {
+    adminPassword.classList.remove("hidden");
+    adminPassword.focus();
   });
-}
-loadRefLinks();
+
+  adminPassword.addEventListener("keyup", e => {
+    if (e.key === "Enter") {
+      if (adminPassword.value.trim() === "0212") {
+        adminLoggedIn = true;
+        localStorage.setItem("adminLoggedIn", "true");
+        adminPassword.value = "";
+        adminPassword.classList.add("hidden");
+        updateAdminUI();
+      } else alert("❌ Incorrect password");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    adminLoggedIn = false;
+    localStorage.setItem("adminLoggedIn", "false");
+    updateAdminUI();
+  });
+
+  // -------------------- IMAGE UPLOAD EVENTS --------------------
+  if (imageInput) imageInput.addEventListener("change", uploadImages);
+
+});
