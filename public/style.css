@@ -129,3 +129,6 @@ textarea {
     flex-direction: column;
   }
 }
+.hidden {
+  display: none !important;
+}
