@@ -30,18 +30,18 @@ h1 {
 header {
   width: 100%;
   display:flex;
-  justify-content:center; /* center header title */
+  justify-content:center; 
   align-items:center;
   padding: 10px 20px;
   box-sizing: border-box;
-  position: relative; /* for absolute positioning of admin controls */
+  position: relative; 
 }
 .admin-controls {
   display:flex;
   align-items:center;
   gap:10px;
   position: absolute;
-  right: 20px; /* top-right corner */
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
   flex-wrap: nowrap;
@@ -59,7 +59,8 @@ header {
   display:flex; 
   flex-wrap:wrap; 
   gap:20px; 
-  justify-content:center; 
+  justify-content:space-between; 
+  align-items:flex-start;
   width:95%; 
   box-sizing:border-box;
 }
@@ -87,12 +88,38 @@ button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
 
+/* ------------------ MAIN PANEL ------------------ */
+#mainPanel {
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:12px;
+  padding:20px;
+  flex:1 1 280px;
+  max-width:400px;
+  box-sizing:border-box;
+}
+#mainPanel h2 {
+  color:#58a6ff;
+  margin-top:0;
+}
+#mainPanel input[type="file"],
+#mainPanel input[type="url"] {
+  width:100%;
+  background:#0d1117;
+  color:#e6edf3;
+  border:1px solid #30363d;
+  border-radius:6px;
+  padding:8px;
+  margin-top:8px;
+  box-sizing:border-box;
+}
+
 /* ------------------ RESPONSIVE ------------------ */
-@media(max-width:600px){
+@media(max-width:900px){
   .container{flex-direction:column; align-items:center;}
   header{justify-content:center; padding:10px;}
   .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
-  .panel{max-width:95%;}
+  .panel, #mainPanel{max-width:95%;}
 }
 </style>
 </head>
@@ -110,6 +137,15 @@ input[type="file"] { margin-top:10px; }
 
 <div class="container">
 
+  <!-- 🧩 MAIN PANEL (New) -->
+  <div class="panel" id="mainPanel">
+    <h2>📋 Main Panel</h2>
+    <p>Upload Excel file or paste a link to load data. (Functionality coming soon)</p>
+    <input type="file" id="excelInput" accept=".xlsx,.xls,.csv">
+    <input type="url" id="linkInput" placeholder="Paste a data link here...">
+  </div>
+
+  <!-- 🎤 ACTIVE VOICE CHAT PANEL (Moved to Right) -->
   <div class="panel" id="vcPanel">
     <h2>🟢 Live Voice Chat - Lordnine</h2>
     <div id="vcAlert"></div>
@@ -119,6 +155,7 @@ input[type="file"] { margin-top:10px; }
     </table>
   </div>
 
+  <!-- 🖼️ IMAGE UPLOADER PANEL -->
   <div class="panel" id="imagePanel" style="display:none;">
     <h2>🖼️ Upload image/screenshot for Attendance</h2>
     <input type="file" id="imageInput" multiple accept="image/*">
@@ -137,6 +174,7 @@ input[type="file"] { margin-top:10px; }
 
 </div>
 
+<!-- KEEPING ALL EXISTING JS EXACTLY THE SAME BELOW -->
 <script>
 // -------------------- SOCKET.IO --------------------
 const socket = io();
