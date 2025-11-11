@@ -159,6 +159,7 @@ function toggleHistoryPanel() {
 }
 
 // ================= ADMIN LOGIN =================
+// ================= ADMIN LOGIN =================
 const adminBtn = document.getElementById("adminBtn");
 const adminPassword = document.getElementById("adminPassword");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -166,50 +167,72 @@ const imagePanel = document.getElementById("imagePanel");
 const adminStatus = document.getElementById("adminStatus");
 let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
+// when DOM is fully ready
+document.addEventListener("DOMContentLoaded", () => {
+  updateAdminUI();
+});
+
 function updateAdminStatus() {
   adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
 }
 
-function showPasswordInput() {
-  adminPassword.style.display = "inline-block";
-  adminPassword.focus();
-  setTimeout(() => {
-    adminPassword.style.display = "none";
-  }, 10000);
+// Hide/show all admin-only panels
+function toggleAdminPanels(show) {
+  const ids = [
+    annInput, annSave, annClear,
+    marketExcel, marketLink, marketImport, marketClear,
+    ssInput, ssUpload, ssClear,
+    refInput, refAdd
+  ];
+  ids.forEach((el) => {
+    if (el) el.style.display = show ? "block" : "none";
+  });
 }
 
-adminBtn.addEventListener("click", showPasswordInput);
-
-adminPassword.addEventListener("keyup", (e) => {
-  if (e.key === "Enter" && adminPassword.value === "0212") {
-    adminLoggedIn = true;
-    localStorage.setItem("adminLoggedIn", "true");
+function updateAdminUI() {
+  if (adminLoggedIn) {
     imagePanel.style.display = "block";
     logoutBtn.style.display = "inline-block";
     adminBtn.style.display = "none";
     adminPassword.style.display = "none";
     toggleAdminPanels(true);
-    updateAdminStatus();
+  } else {
+    imagePanel.style.display = "none";
+    logoutBtn.style.display = "none";
+    adminBtn.style.display = "inline-block";
+    adminPassword.style.display = "none";
+    toggleAdminPanels(false);
   }
-});
-
-if (adminLoggedIn) {
-  imagePanel.style.display = "block";
-  logoutBtn.style.display = "inline-block";
-  adminBtn.style.display = "none";
-  toggleAdminPanels(true);
   updateAdminStatus();
 }
 
+// show password input
+adminBtn.addEventListener("click", () => {
+  adminPassword.style.display = "inline-block";
+  adminPassword.focus();
+});
+
+// when pressing enter in password
+adminPassword.addEventListener("keyup", (e) => {
+  if (e.key === "Enter") {
+    if (adminPassword.value === "0212") {
+      adminLoggedIn = true;
+      localStorage.setItem("adminLoggedIn", "true");
+      adminPassword.value = "";
+      updateAdminUI();
+    } else {
+      alert("❌ Incorrect password");
+    }
+  }
+});
+
+// logout button
 logoutBtn.addEventListener("click", () => {
   adminLoggedIn = false;
   localStorage.setItem("adminLoggedIn", "false");
-  imagePanel.style.display = "none";
-  logoutBtn.style.display = "none";
-  adminBtn.style.display = "inline-block";
-  toggleAdminPanels(false);
-  updateAdminStatus();
+  updateAdminUI();
 });
+
 
 // ================= MAIN PANEL (Announcement / Market / References) =================
 const annInput = document.getElementById("announcementInput");
