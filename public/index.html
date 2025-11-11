@@ -17,6 +17,7 @@ body {
   display:flex; 
   flex-direction:column; 
   align-items:center; 
+  min-height:100vh;
 }
 h1 { 
   color:#238636; 
@@ -54,25 +55,26 @@ header {
 }
 .admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
 
-/* ------------------ CONTAINER ------------------ */
-.container { 
-  display:flex; 
-  flex-wrap:wrap; 
-  gap:20px; 
-  justify-content:space-between; 
-  align-items:flex-start;
-  width:95%; 
-  box-sizing:border-box;
+/* ------------------ CONTAINER LAYOUT ------------------ */
+.container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "main vc"
+    "main image";
+  gap: 20px;
+  width: 95%;
+  flex: 1;
+  box-sizing: border-box;
 }
 
-/* ------------------ PANEL ------------------ */
+/* ------------------ PANEL STYLING ------------------ */
 .panel { 
   background:#161b22; 
   border:1px solid #30363d; 
   border-radius:12px; 
   padding:20px; 
-  flex:1 1 300px; 
-  max-width:500px; 
   box-sizing:border-box;
 }
 table { width:100%; border-collapse:collapse; }
@@ -88,15 +90,13 @@ button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
 
-/* ------------------ MAIN PANEL ------------------ */
+/* ------------------ INDIVIDUAL PANEL AREAS ------------------ */
 #mainPanel {
-  background:#161b22;
-  border:1px solid #30363d;
-  border-radius:12px;
-  padding:20px;
-  flex:1 1 280px;
-  max-width:400px;
-  box-sizing:border-box;
+  grid-area: main;
+  height: calc(100vh - 150px);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
 }
 #mainPanel h2 {
   color:#58a6ff;
@@ -114,12 +114,31 @@ input[type="file"] { margin-top:10px; }
   box-sizing:border-box;
 }
 
+#vcPanel {
+  grid-area: vc;
+  height: 260px;
+  overflow:auto;
+}
+
+#imagePanel {
+  grid-area: image;
+  height: calc(100vh - 460px);
+  overflow:auto;
+}
+
 /* ------------------ RESPONSIVE ------------------ */
 @media(max-width:900px){
-  .container{flex-direction:column; align-items:center;}
+  .container {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  #mainPanel, #vcPanel, #imagePanel {
+    width:95%;
+    height:auto;
+  }
   header{justify-content:center; padding:10px;}
   .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
-  .panel, #mainPanel{max-width:95%;}
 }
 </style>
 </head>
@@ -137,7 +156,7 @@ input[type="file"] { margin-top:10px; }
 
 <div class="container">
 
-  <!-- 🧩 MAIN PANEL (New) -->
+  <!-- 🧩 MAIN PANEL -->
   <div class="panel" id="mainPanel">
     <h2>📋 Main Panel</h2>
     <p>Upload Excel file or paste a link to load data. (Functionality coming soon)</p>
@@ -145,7 +164,7 @@ input[type="file"] { margin-top:10px; }
     <input type="url" id="linkInput" placeholder="Paste a data link here...">
   </div>
 
-  <!-- 🎤 ACTIVE VOICE CHAT PANEL (Moved to Right) -->
+  <!-- 🎤 ACTIVE VOICE CHAT PANEL -->
   <div class="panel" id="vcPanel">
     <h2>🟢 Live Voice Chat - Lordnine</h2>
     <div id="vcAlert"></div>
@@ -174,6 +193,7 @@ input[type="file"] { margin-top:10px; }
 
 </div>
 
+<!-- ✅ ORIGINAL FUNCTIONAL JS (UNCHANGED) -->
 <!-- KEEPING ALL EXISTING JS EXACTLY THE SAME BELOW -->
 <script>
 // -------------------- SOCKET.IO --------------------
