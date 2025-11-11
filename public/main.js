@@ -1,10 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-
   // -------------------- SOCKET.IO --------------------
   const socket = io();
   let attendance = {};
   const activeBody = document.querySelector("#active tbody");
-  const historyDiv = document.querySelector("#history");
+  const historyDiv = document.getElementById("history");
   const vcAlert = document.getElementById("vcAlert");
 
   // -------------------- VC ALERT --------------------
@@ -12,15 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
     vcAlert.textContent = message;
     vcAlert.style.color = type === "join" ? "#2ea043" : "#da3633";
     vcAlert.style.display = "block";
-    setTimeout(() => { vcAlert.style.display = "none"; }, 5000);
+    setTimeout(() => (vcAlert.style.display = "none"), 5000);
   }
 
   // -------------------- ACTIVE VC --------------------
-  function formatDuration(sec) {
-    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  }
-
   function updateActive() {
     activeBody.innerHTML = "";
     const now = new Date();
@@ -39,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateHistory() {
     historyDiv.innerHTML = "";
-    (attendance.history || []).slice(0, 20).forEach(h => {
+    (attendance.history || []).slice(0, 20).forEach((h) => {
       const div = document.createElement("div");
       const time = new Date(h.time).toLocaleTimeString();
       const typeClass = h.type === "join" ? "joined" : "left";
@@ -47,6 +41,15 @@ document.addEventListener("DOMContentLoaded", () => {
       div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
       historyDiv.appendChild(div);
     });
+  }
+
+  function formatDuration(sec) {
+    const h = Math.floor(sec / 3600),
+      m = Math.floor((sec % 3600) / 60),
+      s = sec % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s
+      .toString()
+      .padStart(2, "0")}`;
   }
 
   setInterval(updateActive, 1000);
@@ -58,28 +61,23 @@ document.addEventListener("DOMContentLoaded", () => {
     updateActive();
     updateHistory();
 
-    let lastDisplayedTime = localStorage.getItem("lastDisplayedTime") || 0;
+    // VC alert for recent events
     const last = attendance.history[0];
-    if (last && last.time > lastDisplayedTime) {
+    if (last) {
       const now = Date.now();
-      if (now - last.time <= 5000) {
-        showVCAlert(`${last.user} ${last.type === "join" ? "joined" : "left"} ${last.channel}`, last.type);
-      }
-      lastDisplayedTime = last.time;
-      localStorage.setItem("lastDisplayedTime", lastDisplayedTime);
+      if (now - last.time <= 5000) showVCAlert(`${last.user} ${last.type === "join" ? "joined" : "left"} ${last.channel}`, last.type);
     }
   });
 
   // -------------------- IMAGE UPLOADER --------------------
   const imageInput = document.getElementById("marketScreensInput");
   const imageTableBody = document.querySelector("#screenshotTable tbody");
-  const notification = document.getElementById("notification") || document.createElement("div");
-  const messageInput = document.getElementById("imageMessage") || { value: "Attendance Today has been uploaded!" };
+  const messageInput = document.getElementById("imageMessage"); // optional: add <input id="imageMessage">
   let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
 
   function renderImageTable() {
     imageTableBody.innerHTML = "";
-    uploadedImages.forEach(img => {
+    uploadedImages.forEach((img) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td><td>${img.name}</td><td>${img.status}</td>`;
       imageTableBody.appendChild(tr);
@@ -93,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function uploadImages() {
     const files = Array.from(imageInput.files);
-    files.forEach(file => {
+    files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         uploadedImages.push({ name: file.name, dataURL: e.target.result, status: "Pending" });
@@ -114,57 +112,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function sendImagesToDiscord() {
     if (uploadedImages.length === 0) return alert("No images to send!");
-    const message = messageInput.value.trim() || "Attendance Today has been uploaded!";
+    const message = messageInput?.value.trim() || "Attendance Today has been uploaded!";
     await captureVCPannel();
     fetch("https://vc-attendance.onrender.com/upload-images", {
       method: "POST",
       body: JSON.stringify({ images: uploadedImages, message }),
-      headers: { "Content-Type": "application/json" }
-    }).then(res => res.json()).then(res => {
-      if (res.success) {
-        uploadedImages.forEach(img => img.status = "Sent");
-        saveAndRender();
-        notification.style.display = "block";
-        setTimeout(() => {
-          uploadedImages = [];
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success) {
+          uploadedImages.forEach((img) => (img.status = "Sent"));
           saveAndRender();
-          notification.style.display = "none";
-        }, 15000);
-      } else alert("Failed to send images.");
-    }).catch(err => console.error(err));
+          setTimeout(() => {
+            uploadedImages = [];
+            saveAndRender();
+          }, 15000);
+        } else alert("Failed to send images.");
+      })
+      .catch((err) => console.error(err));
   }
+
+  imageInput?.addEventListener("change", uploadImages);
 
   // -------------------- ADMIN LOGIN --------------------
   const adminBtn = document.getElementById("adminBtn");
   const adminPassword = document.getElementById("adminPassword");
   const logoutBtn = document.getElementById("logoutBtn");
   const adminStatus = document.getElementById("adminStatus");
+
   let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
-  const adminElements = [
-    document.getElementById("announcementInput"),
-    document.getElementById("saveAnnouncementBtn"),
-    document.getElementById("clearAnnouncementBtn"),
-    document.getElementById("marketExcelInput"),
-    document.getElementById("marketLinkInput"),
-    document.getElementById("importMarketBtn"),
-    document.getElementById("clearMarketBtn"),
-    document.getElementById("marketScreensInput"),
-    document.getElementById("uploadMarketScreensBtn"),
-    document.getElementById("clearMarketScreensBtn"),
-    document.getElementById("refLinkInput"),
-    document.getElementById("addRefBtn")
-  ];
-
-  function toggleAdminElements(show) {
-    adminElements.forEach(el => { if (el) el) el.classList.toggle("hidden", !show); });
-  }
-
   function updateAdminUI() {
-    adminStatus.classList.toggle("hidden", !adminLoggedIn);
-    adminBtn.classList.toggle("hidden", adminLoggedIn);
-    logoutBtn.classList.toggle("hidden", !adminLoggedIn);
-    toggleAdminElements(adminLoggedIn);
+    adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
+    adminBtn.style.display = adminLoggedIn ? "none" : "inline-block";
+    logoutBtn.style.display = adminLoggedIn ? "inline-block" : "none";
+
+    // Show/hide all admin-only elements
+    const adminElements = document.querySelectorAll(
+      "#announcementInput, #saveAnnouncementBtn, #clearAnnouncementBtn, " +
+        "#marketExcelInput, #marketLinkInput, #importMarketBtn, #clearMarketBtn, " +
+        "#marketScreensInput, #uploadMarketScreensBtn, #clearMarketScreensBtn, " +
+        "#refLinkInput, #addRefBtn"
+    );
+    adminElements.forEach((el) => el.classList.toggle("hidden", !adminLoggedIn));
   }
 
   updateAdminUI();
@@ -174,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adminPassword.focus();
   });
 
-  adminPassword.addEventListener("keyup", e => {
+  adminPassword.addEventListener("keyup", (e) => {
     if (e.key === "Enter") {
       if (adminPassword.value.trim() === "0212") {
         adminLoggedIn = true;
@@ -182,7 +173,9 @@ document.addEventListener("DOMContentLoaded", () => {
         adminPassword.value = "";
         adminPassword.classList.add("hidden");
         updateAdminUI();
-      } else alert("❌ Incorrect password");
+      } else {
+        alert("❌ Incorrect password");
+      }
     }
   });
 
@@ -191,8 +184,4 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("adminLoggedIn", "false");
     updateAdminUI();
   });
-
-  // -------------------- IMAGE UPLOAD EVENTS --------------------
-  if (imageInput) imageInput.addEventListener("change", uploadImages);
-
 });
