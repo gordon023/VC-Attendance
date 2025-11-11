@@ -1,115 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ZyG - Discord VC Attendance Live</title>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="style.css">
-  <script src="main.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZyG - Discord VC Attendance Live</title>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+body { font-family: 'Segoe UI', sans-serif; background:#0d1117; color:#e6edf3; margin:0; padding:0; display:flex; flex-direction:column; align-items:center;}
+h1 { color:#238636; margin:20px 0; text-align:center; word-break: break-word; flex:1;}
+header { width: 100%; display:flex; justify-content:center; align-items:center; padding: 10px 20px; position: relative;}
+.admin-controls { display:flex; align-items:center; gap:10px; position: absolute; right: 20px; top: 50%; transform: translateY(-50%);}
+.admin-controls input, .admin-controls button { padding:6px 10px; border-radius:6px; border:none; font-size:0.9em;}
+.admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
+.container { display:flex; flex-wrap:wrap; gap:20px; justify-content:center; width:95%; }
+.panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; flex:1 1 300px; max-width:500px; box-sizing:border-box;}
+table { width:100%; border-collapse:collapse; }
+th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
+th { color:#238636; }
+.joined { color:#2ea043; }
+.left { color:#da3633; }
+#history { max-height:150px; overflow-y:auto; font-size:0.9em; }
+#vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
+textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
+button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
+button:hover { background:#2ea043; }
+.status-icons { font-size:16px; }
+input[type="file"] { margin-top:10px; }
+@media(max-width:600px){.container{flex-direction:column; align-items:center;} header{justify-content:center; padding:10px;} .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;} .panel{max-width:95%;}}
+#notification { display:none; margin-top:10px; color:#2ea043; font-weight:bold; }
+</style>
 </head>
-
 <body>
-  <!-- HEADER -->
-  <header>
-    <h1>ZyG - Discord VC Attendance Live</h1>
-    <div>
-      <span id="adminStatus" class="hidden font-bold text-green-400">Admin Logged In</span>
-      <button id="adminBtn" class="bg-blue-600 px-3 py-1 rounded">Admin Login</button>
-      <input type="password" id="adminPassword" class="hidden bg-gray-800 px-2 py-1 rounded" placeholder="Password">
-      <button id="logoutBtn" class="hidden bg-red-600 px-3 py-1 rounded">Logout</button>
-    </div>
-  </header>
 
-  <!-- MAIN CONTENT -->
-  <main class="container">
-    <!-- LEFT PANEL: MAIN PANEL -->
-    <section id="mainPanel" class="panel">
-      <h2>📋 Main Panel</h2>
+<header>
+  <h1>ZyG - Discord VC Attendance Live</h1>
+  <div class="admin-controls">
+    <span id="adminStatus" style="display:none; font-weight:bold; color:#2ea043;">Admin Logged In</span>
+    <button id="adminBtn">Admin Login</button>
+    <input type="password" id="adminPassword" placeholder="Password" style="display:none;">
+    <button id="logoutBtn" style="display:none;">Logout</button>
+  </div>
+</header>
 
-      <!-- ANNOUNCEMENT SECTION -->
-      <div class="section-block">
-        <h3>Announcement</h3>
-        <textarea id="announcementInput" class="hidden" placeholder="Write an announcement..."></textarea>
-        <div class="flex-row">
-          <button id="saveAnnouncementBtn" class="hidden">Save</button>
-          <button id="clearAnnouncementBtn" class="hidden">Clear</button>
-        </div>
-        <p id="announcementDisplay" class="announcement-text"></p>
-      </div>
+<div class="container">
 
-      <hr>
+  <!-- LIVE VC PANEL -->
+  <div class="panel" id="vcPanel">
+    <h2>🟢 Live Voice Chat - Lordnine</h2>
+    <div id="vcAlert"></div>
+    <table id="active">
+      <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-      <!-- MARKET UPLOAD SECTION -->
-      <div class="section-block">
-        <h3>Market Upload / Import</h3>
-        <input type="file" id="marketExcelInput" class="hidden" accept=".xlsx,.xls,.csv">
-        <input type="url" id="marketLinkInput" class="hidden" placeholder="Paste market link...">
-        <div class="flex-row">
-          <button id="importMarketBtn" class="hidden">Import</button>
-          <button id="clearMarketBtn" class="hidden">Clear</button>
-        </div>
+  <!-- IMAGE/ATTENDANCE PANEL -->
+  <div class="panel" id="imagePanel" style="display:none;">
+    <h2>🖼️ Upload image/screenshot for Attendance</h2>
+    <input type="file" id="imageInput" multiple accept="image/*">
+    <button onclick="uploadImages()">Upload to Table</button>
+    <table id="imageTable">
+      <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+    <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+    <button onclick="clearImageTable()"> Clear Table</button>
+    <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
+    <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+    <div id="history" style="display:none;"></div>
+  </div>
 
-        <table id="marketTable" class="w-full text-sm mt-2">
-          <thead>
-            <tr><th>Date</th><th>Item</th><th>Price</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+</div>
 
-      <hr>
+<script>
+// -------------------- SOCKET.IO --------------------
+const socket = io();
+let attendance = {};
+const activeBody = document.querySelector("#active tbody");
+const historyDiv = document.querySelector("#history");
+const vcAlert = document.getElementById("vcAlert");
 
-      <!-- MARKET SCREENSHOTS SECTION -->
-      <div class="section-block">
-        <h3>Market Screenshots</h3>
-        <input type="file" id="marketScreensInput" class="hidden" multiple accept="image/*">
-        <div class="flex-row">
-          <button id="uploadMarketScreensBtn" class="hidden">Upload</button>
-          <button id="clearMarketScreensBtn" class="hidden">Clear Screenshots</button>
-        </div>
+// -------------------- VC ALERT --------------------
+function showVCAlert(message, type) {
+  vcAlert.textContent = message;
+  vcAlert.style.color = type === "join" ? "#2ea043" : "#da3633";
+  vcAlert.style.display = "block";
+  setTimeout(() => { vcAlert.style.display = "none"; }, 5000);
+}
 
-        <table id="screenshotTable" class="w-full text-sm mt-2">
-          <thead>
-            <tr><th>Preview</th><th>Filename</th><th>Status</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+// -------------------- ACTIVE VC --------------------
+function updateActive() {
+  activeBody.innerHTML = "";
+  const now = new Date();
+  Object.entries(attendance.active || {}).forEach(([user, info]) => {
+    const joined = new Date(info.joinedAt || Date.now());
+    const durationSec = Math.floor((now - joined)/1000);
+    const durationText = formatDuration(durationSec);
+    const muteIcon = info.selfMute || info.serverMute ? "🔇" : "🎤";
+    const deafIcon = info.selfDeaf || info.serverDeaf ? "🔕" : "👂";
+    const statusText = `<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${user}</td><td>${info.channel || "Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
+    activeBody.appendChild(tr);
+  });
+}
 
-      <hr>
+function updateHistory() {
+  historyDiv.innerHTML = "";
+  (attendance.history || []).slice(0,20).forEach(h => {
+    const div = document.createElement("div");
+    const time = new Date(h.time).toLocaleTimeString();
+    const typeClass = h.type === "join" ? "joined" : "left";
+    const action = h.type === "join" ? "joined" : "left";
+    div.innerHTML = `<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+    historyDiv.appendChild(div);
+  });
+}
 
-      <!-- REFERENCE LINKS -->
-      <div class="section-block">
-        <h3>Reference Links</h3>
-        <input type="url" id="refLinkInput" class="hidden" placeholder="Add reference link...">
-        <button id="addRefBtn" class="hidden">Add</button>
-        <ul id="refLinksList"></ul>
-      </div>
-    </section>
+function formatDuration(sec) {
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
 
-    <!-- RIGHT PANEL: LIVE VOICE CHAT -->
-    <aside class="right-column">
-      <section id="activeVoicePanel" class="panel">
-        <h2>🟢 Live Voice Chat - Lordnine</h2>
-        <div id="vcAlert" class="mb-3"></div>
-        <table id="active" class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-gray-700">
-              <th>User</th>
-              <th>Channel</th>
-              <th>Status</th>
-              <th>Duration</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
+setInterval(updateActive, 1000);
 
-      <div id="history" class="hidden"></div>
-    </aside>
-  </main>
+socket.on("connect", () => console.log("✅ Connected to server"));
+socket.on("update", (data) => {
+  const oldHistory = attendance.history || [];
+  attendance = data;
+  updateActive();
+  updateHistory();
+
+  let lastDisplayedTime = localStorage.getItem("lastDisplayedTime") || 0;
+  const last = attendance.history[0];
+  if(last && last.time > lastDisplayedTime) {
+    const now = Date.now();
+    if(now - last.time <= 5000) {
+      showVCAlert(`${last.user} ${last.type === "join" ? "joined" : "left"} ${last.channel}`, last.type);
+    }
+    lastDisplayedTime = last.time;
+    localStorage.setItem("lastDisplayedTime", lastDisplayedTime);
+  }
+});
+
+// -------------------- IMAGE UPLOADER --------------------
+const imageInput = document.getElementById("imageInput");
+const imageTableBody = document.querySelector("#imageTable tbody");
+const notification = document.getElementById("notification");
+const messageInput = document.getElementById("imageMessage");
+let uploadedImages = JSON.parse(localStorage.getItem("uploadedImages") || "[]");
+renderImageTable();
+
+function uploadImages() {
+  const files = Array.from(imageInput.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push({ name:file.name, dataURL:e.target.result, status:"Pending" });
+      saveAndRender();
+    };
+    reader.readAsDataURL(file);
+  });
+  imageInput.value = "";
+}
+
+function renderImageTable() {
+  imageTableBody.innerHTML = "";
+  uploadedImages.forEach(img => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><img src="${img.dataURL}" style="max-width:50px;max-height:50px;"></td><td>${img.name}</td><td>${img.status}</td>`;
+    imageTableBody.appendChild(tr);
+  });
+}
+
+function saveAndRender() {
+  localStorage.setItem("uploadedImages", JSON.stringify(uploadedImages));
+  renderImageTable();
+}
+
+function clearImageTable() {
+  uploadedImages = [];
+  saveAndRender();
+  notification.style.display = "none";
+  messageInput.value = "";
+}
+
+async function captureVCPannel() {
+  const panel = document.querySelector(".panel:first-child");
+  const canvas = await html2canvas(panel);
+  const dataURL = canvas.toDataURL("image/png");
+  uploadedImages.push({ name:`VC_Attendance_${Date.now()}.png`, dataURL, status:"Pending" });
+  saveAndRender();
+}
+
+async function sendImagesToDiscord() {
+  if(uploadedImages.length===0) return alert("No images to send!");
+  const message = messageInput.value.trim() || "Attendance Today has been uploaded!";
+  await captureVCPannel();
+  fetch("https://vc-attendance.onrender.com/upload-images", {
+    method:"POST",
+    body: JSON.stringify({ images: uploadedImages, message }),
+    headers: { "Content-Type":"application/json" }
+  }).then(res=>res.json()).then(res=>{
+    if(res.success){
+      uploadedImages.forEach(img=>img.status="Sent");
+      saveAndRender();
+      notification.style.display="block";
+      setTimeout(()=>clearImageTable(),15000);
+    } else alert("Failed to send images.");
+  }).catch(err=>console.error(err));
+}
+
+function toggleHistoryPanel() {
+  historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+}
+
+// -------------------- ADMIN LOGIN/LOGOUT --------------------
+const adminBtn = document.getElementById("adminBtn");
+const adminPassword = document.getElementById("adminPassword");
+const logoutBtn = document.getElementById("logoutBtn");
+const imagePanel = document.getElementById("imagePanel");
+const adminStatus = document.getElementById("adminStatus");
+
+let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
+
+function updateAdminUI() {
+  adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
+  imagePanel.style.display = adminLoggedIn ? "block" : "none";
+  logoutBtn.style.display = adminLoggedIn ? "inline-block" : "none";
+  adminBtn.style.display = adminLoggedIn ? "none" : "inline-block";
+  adminPassword.style.display = "none";
+  adminPassword.value = "";
+}
+
+adminBtn.addEventListener("click", () => {
+  adminPassword.style.display = "inline-block";
+  adminPassword.focus();
+});
+
+adminPassword.addEventListener("keyup", e => {
+  if (e.key === "Enter") {
+    if (adminPassword.value === "0212") {
+      adminLoggedIn = true;
+      localStorage.setItem("adminLoggedIn", "true");
+      updateAdminUI();
+      alert("✅ Admin logged in!");
+    } else {
+      alert("❌ Incorrect password");
+      adminPassword.value = "";
+    }
+  }
+});
+
+logoutBtn.addEventListener("click", () => {
+  adminLoggedIn = false;
+  localStorage.setItem("adminLoggedIn", "false");
+  updateAdminUI();
+  alert("✅ Logged out successfully!");
+});
+
+// Initialize UI on load
+updateAdminUI();
+
+</script>
+
 </body>
 </html>
