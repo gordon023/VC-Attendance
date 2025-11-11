@@ -304,9 +304,12 @@ let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
 function updateAdminUI() {
   adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
-  imagePanel.style.display = adminLoggedIn ? "block" : "none";
   logoutBtn.style.display = adminLoggedIn ? "inline-block" : "none";
   adminBtn.style.display = adminLoggedIn ? "none" : "inline-block";
+
+  // Remove or add hidden class for image panel
+  if(adminLoggedIn) imagePanel.classList.remove("hidden");
+  else imagePanel.classList.add("hidden");
 
   // Show/hide all buttons and inputs inside main panel
   mainPanel.querySelectorAll("input, button, textarea").forEach(el=>{
