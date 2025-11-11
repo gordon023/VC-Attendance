@@ -314,14 +314,18 @@ function updateAdminUI(){
   clearBtn.style.display = adminLoggedIn?"inline-block":"none";
 
   mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn").forEach(el=>{
-    el.style.display = adminLoggedIn?"":"none";
+    el.style.display = adminLoggedIn?"inline-block":"none";
   });
 
-  adminPassword.style.display="none";
+  adminPassword.style.display = adminLoggedIn?"none":"inline-block";
   adminPassword.value="";
 }
 
-adminBtn.addEventListener("click",()=>{ adminPassword.style.display="inline-block"; adminPassword.focus(); });
+adminBtn.addEventListener("click",()=>{ 
+  adminPassword.style.display="inline-block"; 
+  adminPassword.focus(); 
+});
+
 adminPassword.addEventListener("keyup",e=>{
   if(e.key==="Enter"){
     if(adminPassword.value==="0212"){
@@ -329,15 +333,20 @@ adminPassword.addEventListener("keyup",e=>{
       localStorage.setItem("adminLoggedIn","true");
       updateAdminUI();
       alert("✅ Admin logged in!");
-    } else { alert("❌ Incorrect password"); adminPassword.value=""; }
+    } else { 
+      alert("❌ Incorrect password"); 
+      adminPassword.value=""; 
+    }
   }
 });
+
 logoutBtn.addEventListener("click",()=>{
   adminLoggedIn=false;
   localStorage.setItem("adminLoggedIn","false");
   updateAdminUI();
   alert("✅ Logged out successfully!");
 });
+
 updateAdminUI();
 
 // -------------------- TAB SWITCH --------------------
