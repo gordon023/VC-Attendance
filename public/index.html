@@ -5,85 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZyG - Discord VC Attendance Live</title>
 <style>
-/* ------------------ GENERAL ------------------ */
-body { 
-  font-family: 'Segoe UI', sans-serif; 
-  background:#0d1117; 
-  color:#e6edf3; 
-  margin:0; 
-  padding:0; 
-  display:flex; 
-  flex-direction:column; 
-  align-items:center; 
-}
-h1 { 
-  color:#238636; 
-  margin:20px 0; 
-  text-align:center;
-  word-break: break-word;
-  flex:1;
-}
-
-/* ------------------ HEADER ------------------ */
-header {
-  width: 100%;
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background:#0d1117;
+  color:#e6edf3;
+  margin:0;
+  padding:0;
   display:flex;
-  justify-content:center;
+  flex-direction:column;
   align-items:center;
-  padding: 10px 20px;
-  box-sizing: border-box;
-  position: relative;
 }
-.admin-controls {
-  display:flex;
-  align-items:center;
-  gap:10px;
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  flex-wrap: nowrap;
-}
-.admin-controls input, .admin-controls button {
-  padding:6px 10px;
-  border-radius:6px;
-  border:none;
-  font-size:0.9em;
-}
+h1 { color:#238636; margin:20px 0; text-align:center; word-break:break-word; flex:1; }
+header { width:100%; display:flex; justify-content:center; align-items:center; padding:10px 20px; box-sizing:border-box; position:relative; }
+.admin-controls { display:flex; align-items:center; gap:10px; position:absolute; right:20px; top:50%; transform:translateY(-50%); }
+.admin-controls input, .admin-controls button { padding:6px 10px; border-radius:6px; border:none; font-size:0.9em; }
 .admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
 
-/* ------------------ CONTAINER ------------------ */
-.container { 
-  display:flex; 
-  gap:20px; 
-  width:95%; 
-  box-sizing:border-box;
-  align-items: flex-start;
-}
+.container { display:flex; gap:20px; width:95%; box-sizing:border-box; align-items:flex-start; }
+#mainPanel { flex:2; min-width:400px; }
+.rightColumn { flex:1; display:flex; flex-direction:column; gap:10px; min-width:300px; }
 
-/* LEFT COLUMN */
-#mainPanel { 
-  flex: 2;
-  min-width: 400px;
-}
-
-/* RIGHT COLUMN */
-.rightColumn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 300px;
-}
-
-/* ------------------ PANEL ------------------ */
-.panel { 
-  background:#161b22; 
-  border:1px solid #30363d; 
-  border-radius:12px; 
-  padding:20px; 
-  box-sizing:border-box;
-}
+.panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; box-sizing:border-box; }
 table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
 th { color:#238636; }
@@ -93,44 +35,19 @@ th { color:#238636; }
 #vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
 textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
 
-/* BUTTON STYLING */
-button { 
-  background:#238636; 
-  color:#fff; 
-  border:none; 
-  border-radius:6px; 
-  padding:6px 12px; 
-  margin-top:6px; 
-  cursor:pointer; 
-  transition:0.2s;
-}
+button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; transition:0.2s; }
 button:hover { background:#2ea043; }
 
-/* Tab buttons plain + merged */
-#tabMarket, #tabScreenshot {
-  background:#0d1117;
-  border:1px solid #30363d;
-  border-radius:6px 0 0 6px;
-  padding:6px 12px;
-  margin-top:10px;
-  cursor:pointer;
-  flex:1;
-  text-align:center;
-}
+#tabMarket, #tabScreenshot { background:#0d1117; border:1px solid #30363d; border-radius:6px 0 0 6px; padding:6px 12px; margin-top:10px; cursor:pointer; flex:1; text-align:center; }
 #tabScreenshot { border-radius:0 6px 6px 0; margin-left:-1px; }
 .tab-active { background:#30363d; color:#fff; }
 
-/* File input styling hidden unless admin */
 #marketScreensInput, #uploadMarketScreensBtn, #clearMarketScreensBtn { display:none; }
 
-.status-icons { font-size:16px; }
-input[type="file"] { margin-top:10px; }
-
-/* ------------------ RESPONSIVE ------------------ */
 @media(max-width:900px){
   .container{flex-direction:column; align-items:center;}
   header{justify-content:center; padding:10px;}
-  .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
+  .admin-controls{position:absolute; top:10px; right:10px; transform:none;}
   #mainPanel, .rightColumn{min-width:95%;}
 }
 </style>
@@ -148,8 +65,6 @@ input[type="file"] { margin-top:10px; }
 </header>
 
 <div class="container">
-
-  <!-- LEFT: Main Panel -->
   <div class="panel" id="mainPanel">
     <h2>📢 Announcements</h2>
     <div id="announcementDisplay"></div>
@@ -164,7 +79,6 @@ input[type="file"] { margin-top:10px; }
       <button id="tabScreenshot">Screenshot</button>
     </div>
 
-    <!-- MARKET TABLE -->
     <div id="marketTab" style="margin-top:10px;">
       <input type="file" id="marketExcelInput" accept=".xlsx,.xls">
       <button id="importMarketBtn">Import Excel</button>
@@ -175,7 +89,6 @@ input[type="file"] { margin-top:10px; }
       </table>
     </div>
 
-    <!-- SCREENSHOT GALLERY -->
     <div id="screenshotTab" style="display:none; margin-top:10px;">
       <input type="file" id="marketScreensInput" multiple accept="image/*">
       <button id="uploadMarketScreensBtn">Upload Screenshot</button>
@@ -184,10 +97,7 @@ input[type="file"] { margin-top:10px; }
     </div>
   </div>
 
-  <!-- RIGHT COLUMN: VC + Image stacked -->
   <div class="rightColumn">
-
-    <!-- ACTIVE VC PANEL -->
     <div class="panel" id="vcPanel">
       <h2>🟢 Live Voice Chat - Lordnine</h2>
       <div id="vcAlert"></div>
@@ -197,478 +107,169 @@ input[type="file"] { margin-top:10px; }
       </table>
     </div>
 
-    <!-- IMAGE UPLOAD PANEL UNDER VC (ADMIN ONLY) -->
     <div class="panel" id="imagePanel" style="display:none;">
       <h2>🖼️ Upload image/screenshot for Attendance</h2>
       <input type="file" id="imageInput" multiple accept="image/*">
       <button id="uploadImagesBtn">Upload to Table</button>
-      <table id="imageTable">
-        <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+      <table id="imageTable"><thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead><tbody></tbody></table>
+      <textarea id="imageMessage" placeholder="Optional message..."></textarea>
       <button id="sendImagesBtn">Send All to Discord</button>
       <button id="clearImageTableBtn">Clear Table</button>
       <button id="toggleHistoryBtn">Show Join/Leave History</button>
-      <div id="notification" style="display:none;">✅ Images successfully uploaded! Clearing table...</div>
+      <div id="notification" style="display:none;">✅ Images sent!</div>
       <div id="history" style="display:none;"></div>
 
       <!-- ADMIN SETTINGS PANEL -->
       <div id="adminSettings" style="margin-top:15px;">
         <h3>⚙️ Admin Settings</h3>
-        <input type="text" id="webhookURL" placeholder="Webhook URL">
-        <input type="text" id="voiceChannelID" placeholder="Voice Channel ID">
-        <input type="text" id="serverID" placeholder="Server ID">
-        <div style="margin-top:5px;">
-          <button id="saveSettingsBtn">Save</button>
+        <div id="settingsDisplay">
+          <p>Webhook URL: <span id="currentWebhook"></span></p>
+          <p>Server ID: <span id="currentServer"></span></p>
+          <p>Voice Channel ID: <span id="currentVoice"></span></p>
+          <button id="editSettingsBtn">Edit</button>
           <button id="defaultSettingsBtn">Default</button>
+        </div>
+        <div id="settingsEdit" style="display:none;">
+          <input type="text" id="webhookURL" placeholder="Webhook URL">
+          <input type="text" id="serverID" placeholder="Server ID">
+          <input type="text" id="voiceChannelID" placeholder="Voice Channel ID">
+          <button id="saveSettingsBtn">Save</button>
+          <button id="cancelEditBtn">Cancel</button>
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <script>
-// -------------------- SOCKET.IO & VC --------------------
 const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
 const historyDiv = document.getElementById("history");
 const vcAlert = document.getElementById("vcAlert");
 
-function showVCAlert(message, type) {
-  vcAlert.textContent = message;
-  vcAlert.style.color = type==="join"?"#2ea043":"#da3633";
-  vcAlert.style.display="block";
-  setTimeout(()=>{vcAlert.style.display="none";},5000);
-}
-
-function formatDuration(sec){
-  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
-  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
-}
-
-function updateActive(){
-  activeBody.innerHTML="";
-  const now=new Date();
-  Object.entries(attendance.active||{}).forEach(([user,info])=>{
-    const joined=new Date(info.joinedAt||Date.now());
-    const durationText=formatDuration(Math.floor((now-joined)/1000));
-    const muteIcon=info.selfMute||info.serverMute?"🔇":"🎤";
-    const deafIcon=info.selfDeaf||info.serverDeaf?"🔕":"👂";
-    const statusText=`<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${user}</td><td>${info.channel||"Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
-    activeBody.appendChild(tr);
-  });
-}
-
-function updateHistory(){
-  historyDiv.innerHTML="";
-  (attendance.history||[]).slice(0,20).forEach(h=>{
-    const div=document.createElement("div");
-    const time=new Date(h.time).toLocaleTimeString();
-    div.innerHTML=`<span class="${h.type==="join"?"joined":"left"}">${h.user}</span> ${h.type==="join"?"joined":"left"} <b>${h.channel}</b> at ${time}`;
-    historyDiv.appendChild(div);
-  });
-}
-
+function showVCAlert(msg,type){ vcAlert.textContent=msg; vcAlert.style.color=type==="join"?"#2ea043":"#da3633"; vcAlert.style.display="block"; setTimeout(()=>vcAlert.style.display="none",5000);}
+function formatDuration(sec){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return`${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;}
+function updateActive(){activeBody.innerHTML="";const now=new Date();Object.entries(attendance.active||{}).forEach(([u,i])=>{const joined=new Date(i.joinedAt||Date.now());const dur=formatDuration(Math.floor((now-joined)/1000));const mute=i.selfMute||i.serverMute?"🔇":"🎤";const deaf=i.selfDeaf||i.serverDeaf?"🔕":"👂";const tr=document.createElement("tr");tr.innerHTML=`<td>${u}</td><td>${i.channel||"Unknown"}</td><td>${mute} ${deaf}</td><td>${dur}</td>`;activeBody.appendChild(tr);});}
+function updateHistory(){historyDiv.innerHTML="";(attendance.history||[]).slice(0,20).forEach(h=>{const d=document.createElement("div");const t=new Date(h.time).toLocaleTimeString();d.innerHTML=`<span class="${h.type==="join"?"joined":"left"}">${h.user}</span> ${h.type==="join"?"joined":"left"} <b>${h.channel}</b> at ${t}`;historyDiv.appendChild(d);});}
 setInterval(updateActive,1000);
+socket.on("connect",()=>console.log("Connected"));
+socket.on("update",d=>{const last=attendance.history?.[0];attendance=d;updateActive();updateHistory();if(last&&last.time!==attendance.history?.[0]?.time){showVCAlert(`${attendance.history[0].user} ${attendance.history[0].type==="join"?"joined":"left"} ${attendance.history[0].channel}`,attendance.history[0].type);}});
 
-socket.on("connect",()=>console.log("✅ Connected to server"));
-socket.on("update",data=>{
-  const last=attendance.history?.[0];
-  attendance=data;
-  updateActive();
-  updateHistory();
-  if(last && last.time!==attendance.history?.[0]?.time){
-    showVCAlert(`${attendance.history[0].user} ${attendance.history[0].type==="join"?"joined":"left"} ${attendance.history[0].channel}`,attendance.history[0].type);
-  }
-});
-
-// -------------------- ADMIN LOGIN --------------------
-const adminBtn=document.getElementById("adminBtn");
-const adminPassword=document.getElementById("adminPassword");
-const logoutBtn=document.getElementById("logoutBtn");
-const imagePanel=document.getElementById("imagePanel");
-const adminStatus=document.getElementById("adminStatus");
-const mainPanel=document.getElementById("mainPanel");
-
-const screenshotInput=document.getElementById("marketScreensInput");
-const uploadBtn=document.getElementById("uploadMarketScreensBtn");
-const clearBtn=document.getElementById("clearMarketScreensBtn");
-
-let adminLoggedIn = localStorage.getItem("adminLoggedIn")==="true";
-
+// Admin login
+const adminBtn=document.getElementById("adminBtn"),adminPassword=document.getElementById("adminPassword"),logoutBtn=document.getElementById("logoutBtn"),imagePanel=document.getElementById("imagePanel"),adminStatus=document.getElementById("adminStatus"),mainPanel=document.getElementById("mainPanel");
+let adminLoggedIn=localStorage.getItem("adminLoggedIn")==="true";
 function updateAdminUI(){
-  adminStatus.style.display = adminLoggedIn?"inline-block":"none";
-  logoutBtn.style.display = adminLoggedIn?"inline-block":"none";
-  adminBtn.style.display = adminLoggedIn?"none":"inline-block";
-  imagePanel.style.display = adminLoggedIn?"block":"none";
-
-  screenshotInput.style.display = adminLoggedIn?"inline-block":"none";
-  uploadBtn.style.display = adminLoggedIn?"inline-block":"none";
-  clearBtn.style.display = adminLoggedIn?"inline-block":"none";
-
-  mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn").forEach(el=>{
-    el.style.display = adminLoggedIn?"inline-block":"none";
+  adminStatus.style.display=adminLoggedIn?"inline-block":"none";
+  logoutBtn.style.display=adminLoggedIn?"inline-block":"none";
+  adminBtn.style.display=adminLoggedIn?"none":"inline-block";
+  imagePanel.style.display=adminLoggedIn?"block":"none";
+  mainPanel.querySelectorAll("textarea,button,input[type=file]").forEach(el=>{
+    if(!el.closest("#imagePanel")) el.style.display=adminLoggedIn?"inline-block":"none";
   });
-
-  adminPassword.style.display = adminLoggedIn?"none":"inline-block";
+  adminPassword.style.display=adminLoggedIn?"none":"inline-block";
   adminPassword.value="";
 }
-
-adminBtn.addEventListener("click",()=>{ 
-  adminPassword.style.display="inline-block"; 
-  adminPassword.focus(); 
-});
-
-adminPassword.addEventListener("keyup",e=>{
+adminBtn.onclick=()=>{adminPassword.style.display="inline-block";adminPassword.focus();};
+adminPassword.onkeyup=e=>{
   if(e.key==="Enter"){
-    if(adminPassword.value==="0212"){
-      adminLoggedIn=true;
-      localStorage.setItem("adminLoggedIn","true");
-      updateAdminUI();
-      alert("✅ Admin logged in!");
-    } else { 
-      alert("❌ Incorrect password"); 
-      adminPassword.value=""; 
-    }
+    if(adminPassword.value==="0212"){adminLoggedIn=true;localStorage.setItem("adminLoggedIn","true");updateAdminUI();alert("Admin logged in!");}
+    else {alert("Wrong password");adminPassword.value="";}
   }
-});
-
-logoutBtn.addEventListener("click",()=>{
-  adminLoggedIn=false;
-  localStorage.setItem("adminLoggedIn","false");
-  updateAdminUI();
-  alert("✅ Logged out successfully!");
-});
-
+};
+logoutBtn.onclick=()=>{adminLoggedIn=false;localStorage.setItem("adminLoggedIn","false");updateAdminUI();alert("Logged out!");};
 updateAdminUI();
 
-// -------------------- TAB SWITCH --------------------
-const tabMarket=document.getElementById("tabMarket");
-const tabScreenshot=document.getElementById("tabScreenshot");
-const marketTab=document.getElementById("marketTab");
-const screenshotTab=document.getElementById("screenshotTab");
+// Tabs
+const tabMarket=document.getElementById("tabMarket"),tabScreenshot=document.getElementById("tabScreenshot"),marketTab=document.getElementById("marketTab"),screenshotTab=document.getElementById("screenshotTab");
+tabMarket.onclick=()=>{marketTab.style.display="block";screenshotTab.style.display="none";tabMarket.classList.add("tab-active");tabScreenshot.classList.remove("tab-active");};
+tabScreenshot.onclick=()=>{marketTab.style.display="none";screenshotTab.style.display="block";tabMarket.classList.remove("tab-active");tabScreenshot.classList.add("tab-active");};
 
-tabMarket.addEventListener("click",()=>{
-  marketTab.style.display="block";
-  screenshotTab.style.display="none";
-  tabMarket.classList.add("tab-active");
-  tabScreenshot.classList.remove("tab-active");
-});
-tabScreenshot.addEventListener("click",()=>{
-  marketTab.style.display="none";
-  screenshotTab.style.display="block";
-  tabMarket.classList.remove("tab-active");
-  tabScreenshot.classList.add("tab-active");
-});
-
-// -------------------- SCREENSHOT DISPLAY --------------------
+// Screenshots
 let screenshots=JSON.parse(localStorage.getItem("screenshots")||"[]");
 const screenshotGallery=document.getElementById("screenshotGallery");
-
-function renderScreenshots(){
-  screenshotGallery.innerHTML="";
-  screenshots.forEach(img=>{
-    const imgEl=document.createElement("img");
-    imgEl.src=img;
-    imgEl.style.width="80px";
-    imgEl.style.height="80px";
-    imgEl.style.objectFit="cover";
-    imgEl.style.cursor="pointer";
-    imgEl.title="Click to view full image";
-    imgEl.addEventListener("click",()=>window.open(img,"_blank"));
-    screenshotGallery.appendChild(imgEl);
-  });
-}
+function renderScreenshots(){screenshotGallery.innerHTML="";screenshots.forEach(img=>{const el=document.createElement("img");el.src=img;el.style.width="80px";el.style.height="80px";el.style.objectFit="cover";el.onclick=()=>window.open(img,"_blank");screenshotGallery.appendChild(el);});}
 renderScreenshots();
+document.getElementById("uploadMarketScreensBtn").onclick=()=>{const i=document.getElementById("marketScreensInput");Array.from(i.files).forEach(f=>{const r=new FileReader();r.onload=e=>{screenshots.push(e.target.result);localStorage.setItem("screenshots",JSON.stringify(screenshots));renderScreenshots();};r.readAsDataURL(f);});i.value="";};
+document.getElementById("clearMarketScreensBtn").onclick=()=>{screenshots=[];localStorage.removeItem("screenshots");renderScreenshots();};
 
-uploadBtn.addEventListener("click",()=>{
-  Array.from(screenshotInput.files).forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      screenshots.push(e.target.result);
-      localStorage.setItem("screenshots",JSON.stringify(screenshots));
-      renderScreenshots();
-    };
-    reader.readAsDataURL(file);
-  });
-  screenshotInput.value="";
-});
+// Admin Settings
+const defaults={webhookURL:"https://discord.com/api/webhooks/1433449406056763557/nifC_lCD78cMTOoMY6ryDBlain76udKiIEVOitIWT_n8XqygjGj_GWU0zDEf8v6GTxGu",serverID:"1038275000697901106",voiceChannelID:"1038275000697901110"};
+const currentWebhook=document.getElementById("currentWebhook"),currentServer=document.getElementById("currentServer"),currentVoice=document.getElementById("currentVoice");
+const editSettingsBtn=document.getElementById("editSettingsBtn"),defaultSettingsBtn=document.getElementById("defaultSettingsBtn"),saveSettingsBtn=document.getElementById("saveSettingsBtn"),cancelEditBtn=document.getElementById("cancelEditBtn");
+const settingsDisplay=document.getElementById("settingsDisplay"),settingsEdit=document.getElementById("settingsEdit");
+const webhookURLInput=document.getElementById("webhookURL"),serverIDInput=document.getElementById("serverID"),voiceChannelIDInput=document.getElementById("voiceChannelID");
 
-clearBtn.addEventListener("click",()=>{
-  screenshots=[];
-  localStorage.removeItem("screenshots");
-  renderScreenshots();
-});
-
-// -------------------- ADMIN SETTINGS --------------------
-const webhookURLInput = document.getElementById("webhookURL");
-const voiceChannelInput = document.getElementById("voiceChannelID");
-const serverIDInput = document.getElementById("serverID");
-const saveSettingsBtn = document.getElementById("saveSettingsBtn");
-const defaultSettingsBtn = document.getElementById("defaultSettingsBtn");
-
-function loadSettings() {
-  const defaults = {
-    webhookURL: "https://discord.com/api/webhooks/1433449406056763557/nifC_lCD78cMTOoMY6ryDBlain76udKiIEVOitIWT_n8XqygjGj_GWU0zDEf8v6GTxGu",
-    voiceChannelID: "1038275000697901110",
-    serverID: "1038275000697901106"
-  };
-
-  // Load from localStorage or fallback to defaults
-  webhookURLInput.value = localStorage.getItem("webhookURL") || defaults.webhookURL;
-  voiceChannelInput.value = localStorage.getItem("voiceChannelID") || defaults.voiceChannelID;
-  serverIDInput.value = localStorage.getItem("serverID") || defaults.serverID;
-
-  // Store defaults if none exist (ensures always available)
-  if (!localStorage.getItem("webhookURL")) localStorage.setItem("webhookURL", defaults.webhookURL);
-  if (!localStorage.getItem("voiceChannelID")) localStorage.setItem("voiceChannelID", defaults.voiceChannelID);
-  if (!localStorage.getItem("serverID")) localStorage.setItem("serverID", defaults.serverID);
+function loadSettings(){
+  const w=localStorage.getItem("webhookURL")||defaults.webhookURL;
+  const s=localStorage.getItem("serverID")||defaults.serverID;
+  const v=localStorage.getItem("voiceChannelID")||defaults.voiceChannelID;
+  currentWebhook.textContent=w; currentServer.textContent=s; currentVoice.textContent=v;
+  webhookURLInput.value=w; serverIDInput.value=s; voiceChannelIDInput.value=v;
 }
-
-saveSettingsBtn.addEventListener("click", () => {
-  localStorage.setItem("webhookURL", webhookURLInput.value);
-  localStorage.setItem("voiceChannelID", voiceChannelInput.value);
-  localStorage.setItem("serverID", serverIDInput.value);
-  alert("✅ Settings saved!");
-});
-
-defaultSettingsBtn.addEventListener("click", defaultSettings);
-
-// Load settings when page loads
+editSettingsBtn.onclick=()=>{settingsDisplay.style.display="none";settingsEdit.style.display="block";};
+cancelEditBtn.onclick=()=>{settingsDisplay.style.display="block";settingsEdit.style.display="none";};
+saveSettingsBtn.onclick=()=>{localStorage.setItem("webhookURL",webhookURLInput.value);localStorage.setItem("serverID",serverIDInput.value);localStorage.setItem("voiceChannelID",voiceChannelIDInput.value);loadSettings();settingsDisplay.style.display="block";settingsEdit.style.display="none";alert("Settings saved!");};
+defaultSettingsBtn.onclick=()=>{Object.entries(defaults).forEach(([k,v])=>localStorage.setItem(k,v));loadSettings();alert("Restored default settings!");};
 loadSettings();
 
+// Image Panel
+const imageInput=document.getElementById("imageInput"),uploadImagesBtn=document.getElementById("uploadImagesBtn"),clearImageTableBtn=document.getElementById("clearImageTableBtn"),sendImagesBtn=document.getElementById("sendImagesBtn"),toggleHistoryBtn=document.getElementById("toggleHistoryBtn"),imageTableBody=document.querySelector("#imageTable tbody"),imageMessage=document.getElementById("imageMessage"),notification=document.getElementById("notification");
+let imageFiles=[];
+function renderImageTable(){imageTableBody.innerHTML="";imageFiles.forEach(f=>{const tr=document.createElement("tr");tr.innerHTML=`<td><img src="${f.data}" style="width:60px;height:60px;object-fit:cover;"></td><td>${f.name}</td><td>${f.status||"Pending"}</td>`;imageTableBody.appendChild(tr);});}
+uploadImagesBtn.onclick=()=>{Array.from(imageInput.files).forEach(f=>{const r=new FileReader();r.onload=e=>{imageFiles.push({name:f.name,data:e.target.result,status:"Pending"});renderImageTable();};r.readAsDataURL(f);});imageInput.value="";};
+clearImageTableBtn.onclick=()=>{imageFiles=[];renderImageTable();notification.style.display="none";};
+toggleHistoryBtn.onclick=()=>{if(historyDiv.style.display==="none"){historyDiv.style.display="block";toggleHistoryBtn.textContent="Hide Join/Leave History";}else{historyDiv.style.display="none";toggleHistoryBtn.textContent="Show Join/Leave History";}};
+sendImagesBtn.onclick=async()=>{const webhook=localStorage.getItem("webhookURL")||defaults.webhookURL;if(!webhook)return alert("Set webhook first!");if(imageFiles.length===0)return alert("No images.");sendImagesBtn.disabled=true;for(const f of imageFiles){try
+// Continue from your last line inside sendImagesBtn.onclick
+{
+  const form = new FormData();
+  form.append("file", dataURLtoBlob(f.data), f.name);
+  if (imageMessage.value.trim()) {
+    form.append("content", imageMessage.value.trim());
+  }
 
-// -------------------- IMAGE PANEL FUNCTIONALITY (FIXED) --------------------
-const imageInput = document.getElementById("imageInput");
-const uploadImagesBtn = document.getElementById("uploadImagesBtn");
-const clearImageTableBtn = document.getElementById("clearImageTableBtn");
-const sendImagesBtn = document.getElementById("sendImagesBtn");
-const toggleHistoryBtn = document.getElementById("toggleHistoryBtn");
-const imageTableBody = document.getElementById("imageTable").querySelector("tbody");
-const imageMessage = document.getElementById("imageMessage");
-const notification = document.getElementById("notification");
-
-let imageFiles = [];
-
-// Render image table
-function renderImageTable() {
-  imageTableBody.innerHTML = "";
-  imageFiles.forEach(file => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><img src="${file.data}" style="width:60px;height:60px;object-fit:cover;"></td>
-      <td>${file.name}</td>
-      <td>${file.status || "Pending"}</td>
-    `;
-    imageTableBody.appendChild(tr);
+  const response = await fetch(webhook, {
+    method: "POST",
+    body: form
   });
+
+  if (response.ok) {
+    f.status = "Sent ✅";
+  } else {
+    f.status = "Failed ❌";
+  }
+  renderImageTable();
+} catch (err) {
+  console.error("Upload failed:", err);
+  f.status = "Error ❌";
+  renderImageTable();
 }
 
-// Upload images
-uploadImagesBtn.addEventListener("click", () => {
-  Array.from(imageInput.files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      imageFiles.push({ name: file.name, data: e.target.result, status: "Pending" });
-      renderImageTable();
-    };
-    reader.readAsDataURL(file);
-  });
-  imageInput.value = "";
-});
-
-// Clear image table
-clearImageTableBtn.addEventListener("click", () => {
+sendImagesBtn.disabled = false;
+notification.style.display = "block";
+setTimeout(() => {
+  notification.style.display = "none";
   imageFiles = [];
   renderImageTable();
-  notification.style.display = "none";
-});
+}, 5000);
+};
 
-// Toggle join/leave history
-toggleHistoryBtn.addEventListener("click", () => {
-  if (historyDiv.style.display === "none") {
-    historyDiv.style.display = "block";
-    toggleHistoryBtn.textContent = "Hide Join/Leave History";
-  } else {
-    historyDiv.style.display = "none";
-    toggleHistoryBtn.textContent = "Show Join/Leave History";
+// Helper: convert dataURL to Blob for Discord upload
+function dataURLtoBlob(dataURL) {
+  const parts = dataURL.split(",");
+  const mime = parts[0].match(/:(.*?);/)[1];
+  const binary = atob(parts[1]);
+  const array = [];
+  for (let i = 0; i < binary.length; i++) {
+    array.push(binary.charCodeAt(i));
   }
-});
-
-// Send images to Discord webhook
-sendImagesBtn.addEventListener("click", async () => {
-  if (!webhookURLInput.value) return alert("❌ Please set the webhook URL in Admin Settings.");
-  if (imageFiles.length === 0) return alert("❌ No images to send.");
-
-  sendImagesBtn.disabled = true;
-  for (const file of imageFiles) {
-    try {
-      const formData = new FormData();
-      formData.append("file", dataURLtoBlob(file.data), file.name);
-      if (imageMessage.value) formData.append("content", imageMessage.value);
-
-      await fetch(webhookURLInput.value, { method: "POST", body: formData });
-      file.status = "Sent ✅";
-      renderImageTable();
-    } catch (err) {
-      file.status = "Failed ❌";
-      renderImageTable();
-      console.error("Error sending image:", err);
-    }
-  }
-  notification.style.display = "block";
-  setTimeout(() => {
-    imageFiles = [];
-    renderImageTable();
-    notification.style.display = "none";
-  }, 3000);
-  sendImagesBtn.disabled = false;
-});
-
-// Helper: Convert dataURL to Blob
-function dataURLtoBlob(dataurl) {
-  const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while(n--){
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr], {type:mime});
+  return new Blob([new Uint8Array(array)], { type: mime });
 }
-
-// -------------------- MARKET TABLE FUNCTIONALITY --------------------
-const marketExcelInput = document.getElementById("marketExcelInput");
-const importMarketBtn = document.getElementById("importMarketBtn");
-const clearMarketBtn = document.getElementById("clearMarketBtn");
-const marketTableBody = document.getElementById("marketTable").querySelector("tbody");
-
-importMarketBtn.addEventListener("click", async () => {
-  if (!marketExcelInput.files.length) return alert("❌ Please select an Excel file.");
-  const file = marketExcelInput.files[0];
-  const data = await file.arrayBuffer();
-  const workbook = XLSX.read(data);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet);
-  marketTableBody.innerHTML = "";
-  rows.forEach(row => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${row.Date || ""}</td><td>${row.Item || ""}</td><td>${row.Price || ""}</td>`;
-    marketTableBody.appendChild(tr);
-  });
-});
-
-clearMarketBtn.addEventListener("click", () => {
-  marketTableBody.innerHTML = "";
-  marketExcelInput.value = "";
-});
-  // --- FIXED IMAGE PANEL BUTTONS (no other code changed) ---
-document.addEventListener("DOMContentLoaded", () => {
-  const imageInput = document.getElementById("imageInput");
-  const uploadImagesBtn = document.getElementById("uploadImagesBtn");
-  const clearImageTableBtn = document.getElementById("clearImageTableBtn");
-  const sendImagesBtn = document.getElementById("sendImagesBtn");
-  const toggleHistoryBtn = document.getElementById("toggleHistoryBtn");
-  const imageTableBody = document.getElementById("imageTable").querySelector("tbody");
-  const imageMessage = document.getElementById("imageMessage");
-  const notification = document.getElementById("notification");
-  let imageFiles = [];
-
-  function renderImageTable() {
-    imageTableBody.innerHTML = "";
-    imageFiles.forEach(file => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><img src="${file.data}" style="width:60px;height:60px;object-fit:cover;"></td>
-        <td>${file.name}</td>
-        <td>${file.status || "Pending"}</td>
-      `;
-      imageTableBody.appendChild(tr);
-    });
-  }
-
-  uploadImagesBtn.addEventListener("click", () => {
-    Array.from(imageInput.files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        imageFiles.push({ name: file.name, data: e.target.result, status: "Pending" });
-        renderImageTable();
-      };
-      reader.readAsDataURL(file);
-    });
-    imageInput.value = "";
-  });
-
-  clearImageTableBtn.addEventListener("click", () => {
-    imageFiles = [];
-    renderImageTable();
-    notification.style.display = "none";
-  });
-
-  toggleHistoryBtn.addEventListener("click", () => {
-    const historyDiv = document.getElementById("history");
-    if (historyDiv.style.display === "none") {
-      historyDiv.style.display = "block";
-      toggleHistoryBtn.textContent = "Hide Join/Leave History";
-    } else {
-      historyDiv.style.display = "none";
-      toggleHistoryBtn.textContent = "Show Join/Leave History";
-    }
-  });
-
-  sendImagesBtn.addEventListener("click", async () => {
-    const webhook = document.getElementById("webhookURL").value;
-    if (!webhook) return alert("❌ Please set the webhook URL in Admin Settings.");
-    if (imageFiles.length === 0) return alert("❌ No images to send.");
-
-    sendImagesBtn.disabled = true;
-    for (const file of imageFiles) {
-      try {
-        const formData = new FormData();
-        formData.append("file", dataURLtoBlob(file.data), file.name);
-        if (imageMessage.value) formData.append("content", imageMessage.value);
-
-        await fetch(webhook, { method: "POST", body: formData });
-        file.status = "Sent ✅";
-        renderImageTable();
-      } catch (err) {
-        file.status = "Failed ❌";
-        renderImageTable();
-        console.error("Error sending image:", err);
-      }
-    }
-    notification.style.display = "block";
-    setTimeout(() => {
-      imageFiles = [];
-      renderImageTable();
-      notification.style.display = "none";
-    }, 3000);
-    sendImagesBtn.disabled = false;
-  });
-
-  function dataURLtoBlob(dataurl) {
-    const arr = dataurl.split(','),
-      mime = arr[0].match(/:(.*?);/)[1],
-      bstr = atob(arr[1]),
-      n = bstr.length,
-      u8arr = new Uint8Array(n);
-    for (let i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
-    return new Blob([u8arr], { type: mime });
-  }
-});
-
 </script>
-
-<!-- XLSX library -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </body>
 </html>
-
