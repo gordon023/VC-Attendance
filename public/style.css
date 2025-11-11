@@ -1,0 +1,89 @@
+/* ---------- Base Layout ---------- */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* ---------- Layout Containers ---------- */
+.container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 95%;
+  box-sizing: border-box;
+  gap: 20px;
+}
+
+/* Left Panel: Main Panel */
+#mainPanel {
+  flex: 3;
+  max-width: 75%;
+  height: 100%;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Right Column (VC + Image Panels stacked) */
+.right-column {
+  flex: 1;
+  max-width: 25%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* VC Panel */
+#activeVoicePanel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* Image Upload Panel */
+#imageUploadPanel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* ---------- Responsive Adjustments ---------- */
+@media (max-width: 1100px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #mainPanel,
+  .right-column {
+    max-width: 100%;
+  }
+
+  .right-column {
+    flex-direction: column;
+  }
+}
