@@ -160,7 +160,7 @@ input[type="file"] { margin-top:10px; }
     <button id="deleteAnnouncementBtn">Delete</button>
 
     <div style="display:flex; gap:0; margin-top:20px;">
-      <button id="tabMarket">Next Market</button>
+      <button id="tabMarket" class="tab-active">Next Market</button>
       <button id="tabScreenshot">Screenshot</button>
     </div>
 
@@ -201,16 +201,16 @@ input[type="file"] { margin-top:10px; }
     <div class="panel" id="imagePanel" style="display:none;">
       <h2>🖼️ Upload image/screenshot for Attendance</h2>
       <input type="file" id="imageInput" multiple accept="image/*">
-      <button onclick="uploadImages()">Upload to Table</button>
+      <button id="uploadImagesBtn">Upload to Table</button>
       <table id="imageTable">
         <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
         <tbody></tbody>
       </table>
       <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
-      <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-      <button onclick="clearImageTable()"> Clear Table</button>
-      <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
-      <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+      <button id="sendImagesBtn">Send All to Discord</button>
+      <button id="clearImageTableBtn">Clear Table</button>
+      <button id="toggleHistoryBtn">Show Join/Leave History</button>
+      <div id="notification" style="display:none;">✅ Images successfully uploaded! Clearing table...</div>
       <div id="history" style="display:none;"></div>
 
       <!-- ADMIN SETTINGS PANEL -->
@@ -236,7 +236,7 @@ input[type="file"] { margin-top:10px; }
 const socket = io();
 let attendance = {};
 const activeBody = document.querySelector("#active tbody");
-const historyDiv = document.querySelector("#history");
+const historyDiv = document.getElementById("history");
 const vcAlert = document.getElementById("vcAlert");
 
 function showVCAlert(message, type) {
@@ -246,13 +246,17 @@ function showVCAlert(message, type) {
   setTimeout(()=>{vcAlert.style.display="none";},5000);
 }
 
+function formatDuration(sec){
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
+
 function updateActive(){
   activeBody.innerHTML="";
   const now=new Date();
   Object.entries(attendance.active||{}).forEach(([user,info])=>{
     const joined=new Date(info.joinedAt||Date.now());
-    const durationSec=Math.floor((now-joined)/1000);
-    const durationText=formatDuration(durationSec);
+    const durationText=formatDuration(Math.floor((now-joined)/1000));
     const muteIcon=info.selfMute||info.serverMute?"🔇":"🎤";
     const deafIcon=info.selfDeaf||info.serverDeaf?"🔕":"👂";
     const statusText=`<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
@@ -267,33 +271,21 @@ function updateHistory(){
   (attendance.history||[]).slice(0,20).forEach(h=>{
     const div=document.createElement("div");
     const time=new Date(h.time).toLocaleTimeString();
-    const typeClass=h.type==="join"?"joined":"left";
-    const action=h.type==="join"?"joined":"left";
-    div.innerHTML=`<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+    div.innerHTML=`<span class="${h.type==="join"?"joined":"left"}">${h.user}</span> ${h.type==="join"?"joined":"left"} <b>${h.channel}</b> at ${time}`;
     historyDiv.appendChild(div);
   });
-}
-
-function formatDuration(sec){
-  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
-  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
 }
 
 setInterval(updateActive,1000);
 
 socket.on("connect",()=>console.log("✅ Connected to server"));
 socket.on("update",data=>{
-  const oldHistory=attendance.history||[];
+  const last=attendance.history?.[0];
   attendance=data;
   updateActive();
   updateHistory();
-  let lastDisplayedTime=localStorage.getItem("lastDisplayedTime")||0;
-  const last=attendance.history[0];
-  if(last&&last.time>lastDisplayedTime){
-    const now=Date.now();
-    if(now-last.time<=5000) showVCAlert(`${last.user} ${last.type==="join"?"joined":"left"} ${last.channel}`,last.type);
-    lastDisplayedTime=last.time;
-    localStorage.setItem("lastDisplayedTime",lastDisplayedTime);
+  if(last && last.time!==attendance.history?.[0]?.time){
+    showVCAlert(`${attendance.history[0].user} ${attendance.history[0].type==="join"?"joined":"left"} ${attendance.history[0].channel}`,attendance.history[0].type);
   }
 });
 
@@ -309,28 +301,44 @@ const screenshotInput=document.getElementById("marketScreensInput");
 const uploadBtn=document.getElementById("uploadMarketScreensBtn");
 const clearBtn=document.getElementById("clearMarketScreensBtn");
 
-let adminLoggedIn=localStorage.getItem("adminLoggedIn")==="true";
+let adminLoggedIn = localStorage.getItem("adminLoggedIn")==="true";
 
 function updateAdminUI(){
-  adminStatus.style.display=adminLoggedIn?"inline-block":"none";
-  logoutBtn.style.display=adminLoggedIn?"inline-block":"none";
-  adminBtn.style.display=adminLoggedIn?"none":"inline-block";
-  imagePanel.style.display=adminLoggedIn?"block":"none";
+  adminStatus.style.display = adminLoggedIn?"inline-block":"none";
+  logoutBtn.style.display = adminLoggedIn?"inline-block":"none";
+  adminBtn.style.display = adminLoggedIn?"none":"inline-block";
+  imagePanel.style.display = adminLoggedIn?"block":"none";
 
-  // Show/hide screenshot file input + buttons only for admin
-  screenshotInput.style.display=adminLoggedIn?"inline-block":"none";
-  uploadBtn.style.display=adminLoggedIn?"inline-block":"none";
-  clearBtn.style.display=adminLoggedIn?"inline-block":"none";
+  screenshotInput.style.display = adminLoggedIn?"inline-block":"none";
+  uploadBtn.style.display = adminLoggedIn?"inline-block":"none";
+  clearBtn.style.display = adminLoggedIn?"inline-block":"none";
 
   mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn").forEach(el=>{
-    if(adminLoggedIn) el.style.display="";
-    else if(el.id==="addAnnouncementBtn" || el.id==="editAnnouncementBtn" || el.id==="updateAnnouncementBtn" || el.id==="deleteAnnouncementBtn") el.style.display="none";
-    else el.style.display="none";
+    el.style.display = adminLoggedIn?"":"none";
   });
 
   adminPassword.style.display="none";
   adminPassword.value="";
 }
+
+adminBtn.addEventListener("click",()=>{ adminPassword.style.display="inline-block"; adminPassword.focus(); });
+adminPassword.addEventListener("keyup",e=>{
+  if(e.key==="Enter"){
+    if(adminPassword.value==="0212"){
+      adminLoggedIn=true;
+      localStorage.setItem("adminLoggedIn","true");
+      updateAdminUI();
+      alert("✅ Admin logged in!");
+    } else { alert("❌ Incorrect password"); adminPassword.value=""; }
+  }
+});
+logoutBtn.addEventListener("click",()=>{
+  adminLoggedIn=false;
+  localStorage.setItem("adminLoggedIn","false");
+  updateAdminUI();
+  alert("✅ Logged out successfully!");
+});
+updateAdminUI();
 
 // -------------------- TAB SWITCH --------------------
 const tabMarket=document.getElementById("tabMarket");
@@ -344,7 +352,6 @@ tabMarket.addEventListener("click",()=>{
   tabMarket.classList.add("tab-active");
   tabScreenshot.classList.remove("tab-active");
 });
-
 tabScreenshot.addEventListener("click",()=>{
   marketTab.style.display="none";
   screenshotTab.style.display="block";
@@ -354,6 +361,7 @@ tabScreenshot.addEventListener("click",()=>{
 
 // -------------------- SCREENSHOT DISPLAY --------------------
 let screenshots=JSON.parse(localStorage.getItem("screenshots")||"[]");
+const screenshotGallery=document.getElementById("screenshotGallery");
 
 function renderScreenshots(){
   screenshotGallery.innerHTML="";
@@ -372,8 +380,7 @@ function renderScreenshots(){
 renderScreenshots();
 
 uploadBtn.addEventListener("click",()=>{
-  const files=Array.from(screenshotInput.files);
-  files.forEach(file=>{
+  Array.from(screenshotInput.files).forEach(file=>{
     const reader=new FileReader();
     reader.onload=e=>{
       screenshots.push(e.target.result);
@@ -391,29 +398,7 @@ clearBtn.addEventListener("click",()=>{
   renderScreenshots();
 });
 
-// -------------------- INITIALIZE --------------------
-updateAdminUI();
-
-// Admin login events
-adminBtn.addEventListener("click",()=>{ adminPassword.style.display="inline-block"; adminPassword.focus(); });
-adminPassword.addEventListener("keyup",e=>{
-  if(e.key==="Enter"){
-    if(adminPassword.value==="0212"){
-      adminLoggedIn=true;
-      localStorage.setItem("adminLoggedIn","true");
-      updateAdminUI();
-      alert("✅ Admin logged in!");
-    } else { alert("❌ Incorrect password"); adminPassword.value=""; }
-  }
-});
-logoutBtn.addEventListener("click",()=>{
-  adminLoggedIn=false;
-  localStorage.setItem("adminLoggedIn","false");
-  updateAdminUI();
-  alert("✅ Logged out successfully!");
-});
-
-// -------------------- ADMIN SETTINGS PANEL --------------------
+// -------------------- ADMIN SETTINGS --------------------
 const webhookURLInput = document.getElementById("webhookURL");
 const voiceChannelInput = document.getElementById("voiceChannelID");
 const serverIDInput = document.getElementById("serverID");
@@ -440,7 +425,6 @@ function defaultSettings(){
 }
 saveSettingsBtn.addEventListener("click", saveSettings);
 defaultSettingsBtn.addEventListener("click", defaultSettings);
-
 loadSettings();
 </script>
 </body>
