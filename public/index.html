@@ -3,152 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZyG - Discord VC Attendance Live</title>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<title>VC Attendance & Admin Panel</title>
 <style>
-body { font-family: 'Segoe UI', sans-serif; background:#0d1117; color:#e6edf3; margin:0; padding:0; display:flex; flex-direction:column; align-items:center;}
-h1 { color:#238636; margin:20px 0; text-align:center; word-break: break-word; flex:1;}
-header { width: 100%; display:flex; justify-content:center; align-items:center; padding: 10px 20px; position: relative;}
-.admin-controls { display:flex; align-items:center; gap:10px; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); }
-.admin-controls input, .admin-controls button { padding:6px 10px; border-radius:6px; border:none; font-size:0.9em;}
-.admin-controls input { border:1px solid #30363d; background:#0d1117; color:#e6edf3; }
-.container { display:flex; width:95%; gap:20px; align-items:flex-start; justify-content:flex-start; flex-wrap:wrap;}
-.left-column { flex:2 1 0; }
-.right-column { flex:1 1 0; display:flex; flex-direction:column; gap:20px; }
-.panel { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; box-sizing:border-box;}
-table { width:100%; border-collapse:collapse; }
-th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
-th { color:#238636; }
-.joined { color:#2ea043; }
-.left { color:#da3633; }
-#history { max-height:150px; overflow-y:auto; font-size:0.9em; }
-#vcAlert { margin-bottom:10px; font-weight:bold; display:none; font-size:1em; }
-textarea { width:100%; height:60px; background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; margin-top:10px; padding:6px; resize:none; }
-button { background:#238636; color:#fff; border:none; border-radius:6px; padding:6px 12px; margin-top:6px; cursor:pointer; }
-button:hover { background:#2ea043; }
-.status-icons { font-size:16px; }
-input[type="file"] { margin-top:10px; }
-.hidden { display:none !important; }
-@media(max-width:900px){
-  .container{flex-direction:column; align-items:center;}
-  header{justify-content:center; padding:10px;}
-  .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
-}
-#notification { display:none; margin-top:10px; color:#2ea043; font-weight:bold; }
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+  .panel { border: 1px solid #ccc; padding: 10px; margin: 10px; }
+  .hidden { display: none; }
+  .tabs { display: flex; gap: 10px; cursor: pointer; }
+  .tabs div { padding: 5px 10px; border: 1px solid #ccc; }
+  .tabs div.active { background: #eee; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table, th, td { border: 1px solid #ccc; }
+  th, td { padding: 5px; text-align: left; }
+  img { max-width: 100%; }
+  #vcAlert { display: none; padding: 5px; margin: 5px 0; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>ZyG - Discord VC Attendance Live</h1>
-  <div class="admin-controls">
-    <span id="adminStatus" style="display:none; font-weight:bold; color:#2ea043;">Admin Logged In</span>
-    <button id="adminBtn">Admin Login</button>
-    <input type="password" id="adminPassword" placeholder="Password" style="display:none;">
-    <button id="logoutBtn" style="display:none;">Logout</button>
-  </div>
-</header>
-
-<div class="container">
-
-  <!-- LEFT COLUMN: MAIN PANEL -->
-  <div class="left-column">
-    <div class="panel" id="mainPanel">
-      <h2>📋 Main Panel</h2>
-
-      <!-- ANNOUNCEMENT SECTION -->
-      <div class="section-block">
-        <h3>Announcement</h3>
-        <textarea id="announcementInput" class="hidden" placeholder="Write an announcement..."></textarea>
-        <div class="flex-row">
-          <button id="saveAnnouncementBtn" class="hidden">Save</button>
-          <button id="clearAnnouncementBtn" class="hidden">Clear</button>
-        </div>
-        <p id="announcementDisplay" class="announcement-text"></p>
-      </div>
-
-      <hr>
-
-      <!-- MARKET UPLOAD SECTION -->
-      <div class="section-block">
-        <h3>Market Upload / Import</h3>
-        <input type="file" id="marketExcelInput" class="hidden" accept=".xlsx,.xls,.csv">
-        <input type="url" id="marketLinkInput" class="hidden" placeholder="Paste market link...">
-        <div class="flex-row">
-          <button id="importMarketBtn" class="hidden">Import</button>
-          <button id="clearMarketBtn" class="hidden">Clear</button>
-        </div>
-        <table id="marketTable" class="w-full text-sm mt-2">
-          <thead>
-            <tr><th>Date</th><th>Item</th><th>Price</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <hr>
-
-      <!-- MARKET SCREENSHOTS SECTION -->
-      <div class="section-block">
-        <h3>Market Screenshots</h3>
-        <input type="file" id="marketScreensInput" class="hidden" multiple accept="image/*">
-        <div class="flex-row">
-          <button id="uploadMarketScreensBtn" class="hidden">Upload</button>
-          <button id="clearMarketScreensBtn" class="hidden">Clear Screenshots</button>
-        </div>
-        <table id="screenshotTable" class="w-full text-sm mt-2">
-          <thead>
-            <tr><th>Preview</th><th>Filename</th><th>Status</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <hr>
-
-      <!-- REFERENCE LINKS -->
-      <div class="section-block">
-        <h3>Reference Links</h3>
-        <input type="url" id="refLinkInput" class="hidden" placeholder="Add reference link...">
-        <button id="addRefBtn" class="hidden">Add</button>
-        <ul id="refLinksList"></ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT COLUMN: VC PANEL + IMAGE UPLOAD -->
-  <div class="right-column">
-    <!-- LIVE VC PANEL -->
-    <div class="panel" id="vcPanel">
-      <h2>🟢 Live Voice Chat - Lordnine</h2>
-      <div id="vcAlert"></div>
-      <table id="active">
-        <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <!-- IMAGE UPLOAD PANEL (ONLY ADMIN) -->
-    <div class="panel hidden" id="imagePanel">
-      <h2>🖼️ Upload image/screenshot for Attendance</h2>
-      <input type="file" id="imageInput" multiple accept="image/*">
-      <button onclick="uploadImages()">Upload to Table</button>
-      <table id="imageTable">
-        <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
-      <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-      <button onclick="clearImageTable()"> Clear Table</button>
-      <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
-      <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-      <div id="history" style="display:none;"></div>
-    </div>
-  </div>
-
+<!-- ===================== ADMIN LOGIN ===================== -->
+<div class="panel">
+  <button id="adminBtn">Admin Login</button>
+  <input type="password" id="adminPassword" class="adminOnly hidden" placeholder="Enter Password">
+  <button id="logoutBtn" class="adminOnly hidden">Logout</button>
+  <span id="adminStatus" class="adminOnly hidden">Logged in as Admin</span>
 </div>
 
+<!-- ===================== MAIN PANEL ===================== -->
+<div class="panel" id="mainPanel">
+  
+  <!-- ANNOUNCEMENT -->
+  <h2>📢 Announcement</h2>
+  <div id="announcementDisplay"></div>
+  <textarea id="announcementInput" class="adminOnly" placeholder="Add announcement here..."></textarea>
+  <div class="adminOnly">
+    <button id="addAnnouncementBtn">Add</button>
+    <button id="editAnnouncementBtn">Edit</button>
+    <button id="updateAnnouncementBtn">Update</button>
+    <button id="deleteAnnouncementBtn">Delete</button>
+  </div>
+
+  <!-- NEXT MARKET | SCREENSHOT TABS -->
+  <div class="tabs">
+    <div id="tabMarket" class="active">Next Market</div>
+    <div id="tabScreenshot">Screenshot</div>
+  </div>
+
+  <!-- NEXT MARKET TAB -->
+  <div id="marketTab">
+    <h3>Next Market Table</h3>
+    <input type="file" id="marketExcelInput" class="adminOnly">
+    <button id="importMarketBtn" class="adminOnly">Import Excel</button>
+    <button id="clearMarketBtn" class="adminOnly">Clear Table</button>
+    <table id="marketTable">
+      <thead>
+        <tr><th>Date</th><th>Item Name</th><th>Price</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- SCREENSHOT TAB -->
+  <div id="screenshotTab" class="hidden">
+    <h3>Screenshot Gallery</h3>
+    <input type="file" id="marketScreensInput" class="adminOnly" multiple accept="image/*">
+    <button id="uploadMarketScreensBtn" class="adminOnly">Upload</button>
+    <button id="clearMarketScreensBtn" class="adminOnly">Clear</button>
+    <div id="screenshotGallery"></div>
+  </div>
+  
+</div>
+
+<!-- ===================== ACTIVE VOICE PANEL ===================== -->
+<div class="panel" id="vcPanel">
+  <h2>Active Voice Channel</h2>
+  <div id="vcAlert"></div>
+  <table id="active">
+    <thead>
+      <tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div id="history" style="display:none;"></div>
+</div>
+
+<!-- ===================== IMAGE UPLOAD PANEL ===================== -->
+<div class="panel hidden adminOnly" id="imagePanel">
+  <h2>🖼️ Upload image/screenshot for Attendance</h2>
+  <input type="file" id="imageInput" multiple accept="image/*">
+  <button onclick="uploadImages()">Upload to Table</button>
+  <table id="imageTable">
+    <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+  <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+  <button onclick="clearImageTable()">Clear Table</button>
+  <button onclick="toggleHistoryPanel()">Show Join/Leave History</button>
+  <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
 // -------------------- SOCKET.IO --------------------
 const socket = io();
@@ -303,21 +258,20 @@ const mainPanel = document.getElementById("mainPanel");
 let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
 function updateAdminUI() {
+  adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
+
   adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
   logoutBtn.style.display = adminLoggedIn ? "inline-block" : "none";
   adminBtn.style.display = adminLoggedIn ? "none" : "inline-block";
 
-  // Remove or add hidden class for image panel
+  // Image panel
   if(adminLoggedIn) imagePanel.classList.remove("hidden");
   else imagePanel.classList.add("hidden");
 
-  // Show/hide all buttons and inputs inside main panel
-  mainPanel.querySelectorAll("input, button, textarea").forEach(el=>{
+  // Show/hide all admin-only elements
+  document.querySelectorAll(".adminOnly").forEach(el=>{
     el.style.display = adminLoggedIn ? "" : "none";
   });
-
-  adminPassword.style.display = "none";
-  adminPassword.value = "";
 }
 
 adminBtn.addEventListener("click", () => {
@@ -328,7 +282,6 @@ adminBtn.addEventListener("click", () => {
 adminPassword.addEventListener("keyup", e => {
   if (e.key === "Enter") {
     if (adminPassword.value === "0212") {
-      adminLoggedIn = true;
       localStorage.setItem("adminLoggedIn", "true");
       updateAdminUI();
       alert("✅ Admin logged in!");
@@ -340,15 +293,107 @@ adminPassword.addEventListener("keyup", e => {
 });
 
 logoutBtn.addEventListener("click", () => {
-  adminLoggedIn = false;
   localStorage.setItem("adminLoggedIn", "false");
   updateAdminUI();
   alert("✅ Logged out successfully!");
 });
 
-// Initialize UI on load
+// -------------------- ANNOUNCEMENT --------------------
+let announcementText = localStorage.getItem("announcementText") || "";
+const announcementDisplay = document.getElementById("announcementDisplay");
+const announcementInput = document.getElementById("announcementInput");
+
+function renderAnnouncement() {
+  announcementDisplay.textContent = announcementText;
+  announcementInput.value = announcementText;
+}
+renderAnnouncement();
+
+document.getElementById("addAnnouncementBtn").addEventListener("click", ()=>{
+  announcementText = announcementInput.value.trim();
+  localStorage.setItem("announcementText", announcementText);
+  renderAnnouncement();
+});
+
+document.getElementById("editAnnouncementBtn").addEventListener("click", ()=>{
+  announcementInput.value = announcementText;
+});
+
+document.getElementById("updateAnnouncementBtn").addEventListener("click", ()=>{
+  announcementText = announcementInput.value.trim();
+  localStorage.setItem("announcementText", announcementText);
+  renderAnnouncement();
+});
+
+document.getElementById("deleteAnnouncementBtn").addEventListener("click", ()=>{
+  announcementText = "";
+  localStorage.removeItem("announcementText");
+  renderAnnouncement();
+});
+
+// -------------------- TAB SWITCH --------------------
+const tabMarket = document.getElementById("tabMarket");
+const tabScreenshot = document.getElementById("tabScreenshot");
+const marketTab = document.getElementById("marketTab");
+const screenshotTab = document.getElementById("screenshotTab");
+
+tabMarket.addEventListener("click", ()=>{
+  marketTab.style.display = "block";
+  screenshotTab.style.display = "none";
+  tabMarket.classList.add("active");
+  tabScreenshot.classList.remove("active");
+});
+
+tabScreenshot.addEventListener("click", ()=>{
+  marketTab.style.display = "none";
+  screenshotTab.style.display = "block";
+  tabScreenshot.classList.add("active");
+  tabMarket.classList.remove("active");
+});
+
+// -------------------- SCREENSHOT DISPLAY --------------------
+const screenshotInput = document.getElementById("marketScreensInput");
+const screenshotGallery = document.getElementById("screenshotGallery");
+let screenshots = JSON.parse(localStorage.getItem("screenshots") || "[]");
+
+function renderScreenshots() {
+  screenshotGallery.innerHTML = "";
+  screenshots.forEach((img)=>{
+    const imgEl = document.createElement("img");
+    imgEl.src = img;
+    imgEl.style.width = "80px";
+    imgEl.style.height = "80px";
+    imgEl.style.objectFit = "cover";
+    imgEl.style.cursor = "pointer";
+    imgEl.title = "Click to view full image";
+    imgEl.addEventListener("click", ()=>window.open(img, "_blank"));
+    screenshotGallery.appendChild(imgEl);
+  });
+}
+renderScreenshots();
+
+document.getElementById("uploadMarketScreensBtn").addEventListener("click", ()=>{
+  const files = Array.from(screenshotInput.files);
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      screenshots.push(e.target.result);
+      localStorage.setItem("screenshots", JSON.stringify(screenshots));
+      renderScreenshots();
+    };
+    reader.readAsDataURL(file);
+  });
+  screenshotInput.value = "";
+});
+
+document.getElementById("clearMarketScreensBtn").addEventListener("click", ()=>{
+  screenshots = [];
+  localStorage.removeItem("screenshots");
+  renderScreenshots();
+});
+
+// -------------------- INITIALIZE --------------------
 updateAdminUI();
 </script>
-
 </body>
 </html>
