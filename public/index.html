@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZyG - Discord VC Attendance - FIXING!</title>
+<title>ZyG - Discord VC Attendance Live</title>
 <style>
 /* ------------------ GENERAL ------------------ */
 body { 
@@ -28,18 +28,18 @@ h1 {
 header {
   width: 100%;
   display:flex;
-  justify-content:center;
+  justify-content:center; /* center header title */
   align-items:center;
   padding: 10px 20px;
   box-sizing: border-box;
-  position: relative;
+  position: relative; /* for absolute positioning of admin controls */
 }
 .admin-controls {
   display:flex;
   align-items:center;
   gap:10px;
   position: absolute;
-  right: 20px;
+  right: 20px; /* top-right corner */
   top: 50%;
   transform: translateY(-50%);
   flex-wrap: nowrap;
@@ -55,15 +55,14 @@ header {
 /* ------------------ CONTAINER ------------------ */
 .container { 
   display:flex; 
-  flex-wrap:nowrap; 
+  flex-wrap:wrap; 
   gap:20px; 
-  justify-content:center; 
+  justify-content:flex-start; 
   width:95%; 
   box-sizing:border-box;
-  align-items:flex-start;
 }
 
-/* ------------------ PANELS ------------------ */
+/* ------------------ PANEL ------------------ */
 .panel { 
   background:#161b22; 
   border:1px solid #30363d; 
@@ -72,17 +71,19 @@ header {
   box-sizing:border-box;
 }
 #mainPanel { 
-  flex:2; 
-  max-width:700px; 
+  flex:2 1 600px; /* make main panel wider */
+  max-width:650px;
 }
 #vcPanel { 
-  flex:1; 
-  max-width:400px; 
+  flex:1 1 300px; 
+  max-width:350px;
 }
 #imagePanel { 
-  margin-top:10px;
+  flex-basis:100%; /* full width under VC panel */
+  max-width:100%;
 }
-table { width:100%; border-collapse:collapse; margin-top:10px;}
+
+table { width:100%; border-collapse:collapse; }
 th,td { border-bottom:1px solid #30363d; padding:6px 10px; text-align:left; }
 th { color:#238636; }
 .joined { color:#2ea043; }
@@ -95,27 +96,22 @@ button:hover { background:#2ea043; }
 .status-icons { font-size:16px; }
 input[type="file"] { margin-top:10px; }
 
-/* ------------------ VISITOR TABLE BUTTONS ------------------ */
-.table-buttons {
-  display:flex;
-  gap:10px;
-  margin-top:10px;
-}
-.table-buttons button { margin-top:0; }
-
 /* ------------------ RESPONSIVE ------------------ */
 @media(max-width:900px){
   .container{flex-direction:column; align-items:center;}
   header{justify-content:center; padding:10px;}
   .admin-controls{position: absolute; top:10px; right:10px; transform:none; flex-wrap:wrap;}
-  #mainPanel, #vcPanel{max-width:95%;}
+  #mainPanel, #vcPanel, #imagePanel{max-width:95%;}
 }
+
+/* ------------------ TAB SWITCH ------------------ */
+#marketTab, #screenshotTab { margin-top:10px; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>ZyG - Discord VC Attendance Live</h1>
+  <h1>ZyG - Discord VC Attendance FIXING</h1>
   <div class="admin-controls">
     <span id="adminStatus" style="display:none; font-weight:bold; color:#2ea043;">Admin Logged In</span>
     <button id="adminBtn">Admin Login</button>
@@ -126,127 +122,272 @@ input[type="file"] { margin-top:10px; }
 
 <div class="container">
 
-  <!-- MAIN PANEL -->
+  <!-- MAIN PANEL LEFT -->
   <div class="panel" id="mainPanel">
     <h2>📢 Announcements</h2>
-    <div id="announcement"></div>
+    <div id="announcementDisplay"></div>
+    <textarea id="announcementInput" placeholder="Enter announcement..."></textarea>
+    <button id="addAnnouncementBtn">Add</button>
+    <button id="editAnnouncementBtn">Edit</button>
+    <button id="updateAnnouncementBtn">Update</button>
+    <button id="deleteAnnouncementBtn">Delete</button>
 
-    <!-- Visitor Table Buttons -->
-    <div class="table-buttons">
-      <button id="nextMarketBtn">Next Market Table</button>
-      <button id="screenshotBtn">Screenshot Table</button>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button id="tabMarket">Next Market</button>
+      <button id="tabScreenshot">Screenshot</button>
     </div>
 
-    <!-- Market Table -->
-    <div id="marketTableContainer" style="display:none;">
-      <h3>Next Market</h3>
+    <!-- MARKET TABLE -->
+    <div id="marketTab" style="margin-top:10px;">
+      <input type="file" id="marketExcelInput" accept=".xlsx,.xls">
+      <button id="importMarketBtn">Import Excel</button>
+      <button id="clearMarketBtn">Clear Table</button>
       <table id="marketTable">
         <thead><tr><th>Date</th><th>Item</th><th>Price</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
 
-    <!-- Screenshot Table -->
-    <div id="screenshotTableContainer" style="display:none;">
-      <h3>Screenshot Uploads</h3>
-      <table id="screenshotTable">
-        <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-        <tbody></tbody>
-      </table>
+    <!-- SCREENSHOT GALLERY -->
+    <div id="screenshotTab" style="display:none; margin-top:10px;">
+      <input type="file" id="marketScreensInput" multiple accept="image/*">
+      <button id="uploadMarketScreensBtn">Upload Screenshot</button>
+      <button id="clearMarketScreensBtn">Clear Screenshots</button>
+      <div id="screenshotGallery" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;"></div>
     </div>
-
   </div>
 
-  <!-- RIGHT PANEL: Active VC & Image Upload -->
-  <div style="display:flex; flex-direction:column; gap:10px; flex:1;">
-    <div class="panel" id="vcPanel">
-      <h2>🟢 Live Voice Chat - Lordnine</h2>
-      <div id="vcAlert"></div>
-      <table id="active">
-        <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  <!-- ACTIVE VC PANEL RIGHT -->
+  <div class="panel" id="vcPanel">
+    <h2>🟢 Live Voice Chat - Lordnine</h2>
+    <div id="vcAlert"></div>
+    <table id="active">
+      <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    <!-- Admin-only Image Panel -->
-    <div class="panel" id="imagePanel" style="display:none;">
-      <h2>🖼️ Upload image/screenshot for Attendance</h2>
-      <input type="file" id="imageInput" multiple accept="image/*">
-      <button onclick="uploadImages()">Upload to Table</button>
-      <table id="imageTable">
-        <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
-      <button onclick="sendImagesToDiscord()">Send All to Discord</button>
-      <button onclick="clearImageTable()"> Clear Table</button>
-      <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
-      <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
-      <div id="history" style="display:none;"></div>
-    </div>
+  <!-- IMAGE UPLOAD PANEL UNDER VC (ADMIN ONLY) -->
+  <div class="panel" id="imagePanel" style="display:none;">
+    <h2>🖼️ Upload image/screenshot for Attendance</h2>
+    <input type="file" id="imageInput" multiple accept="image/*">
+    <button onclick="uploadImages()">Upload to Table</button>
+    <table id="imageTable">
+      <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <textarea id="imageMessage" placeholder="Optional message to send with the images..."></textarea>
+    <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+    <button onclick="clearImageTable()"> Clear Table</button>
+    <button onclick="toggleHistoryPanel()"> Show Join/Leave History</button>
+    <div id="notification">✅ Images successfully uploaded! Clearing table...</div>
+    <div id="history" style="display:none;"></div>
   </div>
 
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-// ------------------ ADMIN LOGIN ------------------
-const adminBtn = document.getElementById('adminBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const adminPassword = document.getElementById('adminPassword');
-const adminStatus = document.getElementById('adminStatus');
-const imagePanel = document.getElementById('imagePanel');
+// -------------------- SOCKET.IO & VC --------------------
+const socket = io();
+let attendance = {};
+const activeBody = document.querySelector("#active tbody");
+const historyDiv = document.querySelector("#history");
+const vcAlert = document.getElementById("vcAlert");
 
-adminBtn.addEventListener('click', () => {
-  adminPassword.style.display = 'inline-block';
-  const password = prompt("Enter admin password:");
-  if(password === "admin123"){ // example password
-    adminStatus.style.display = 'inline';
-    adminBtn.style.display = 'none';
-    adminPassword.style.display = 'none';
-    logoutBtn.style.display = 'inline-block';
-    imagePanel.style.display = 'block';
-  } else {
-    alert("Wrong password!");
+function showVCAlert(message, type) {
+  vcAlert.textContent = message;
+  vcAlert.style.color = type==="join"?"#2ea043":"#da3633";
+  vcAlert.style.display="block";
+  setTimeout(()=>{vcAlert.style.display="none";},5000);
+}
+
+function updateActive(){
+  activeBody.innerHTML="";
+  const now=new Date();
+  Object.entries(attendance.active||{}).forEach(([user,info])=>{
+    const joined=new Date(info.joinedAt||Date.now());
+    const durationSec=Math.floor((now-joined)/1000);
+    const durationText=formatDuration(durationSec);
+    const muteIcon=info.selfMute||info.serverMute?"🔇":"🎤";
+    const deafIcon=info.selfDeaf||info.serverDeaf?"🔕":"👂";
+    const statusText=`<span class="status-icons">${muteIcon} ${deafIcon}</span>`;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${user}</td><td>${info.channel||"Unknown"}</td><td>${statusText}</td><td>${durationText}</td>`;
+    activeBody.appendChild(tr);
+  });
+}
+
+function updateHistory(){
+  historyDiv.innerHTML="";
+  (attendance.history||[]).slice(0,20).forEach(h=>{
+    const div=document.createElement("div");
+    const time=new Date(h.time).toLocaleTimeString();
+    const typeClass=h.type==="join"?"joined":"left";
+    const action=h.type==="join"?"joined":"left";
+    div.innerHTML=`<span class="${typeClass}">${h.user}</span> ${action} <b>${h.channel}</b> at ${time}`;
+    historyDiv.appendChild(div);
+  });
+}
+
+function formatDuration(sec){
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
+
+setInterval(updateActive,1000);
+
+socket.on("connect",()=>console.log("✅ Connected to server"));
+socket.on("update",data=>{
+  const oldHistory=attendance.history||[];
+  attendance=data;
+  updateActive();
+  updateHistory();
+  let lastDisplayedTime=localStorage.getItem("lastDisplayedTime")||0;
+  const last=attendance.history[0];
+  if(last&&last.time>lastDisplayedTime){
+    const now=Date.now();
+    if(now-last.time<=5000) showVCAlert(`${last.user} ${last.type==="join"?"joined":"left"} ${last.channel}`,last.type);
+    lastDisplayedTime=last.time;
+    localStorage.setItem("lastDisplayedTime",lastDisplayedTime);
   }
 });
 
-logoutBtn.addEventListener('click', () => {
-  adminStatus.style.display = 'none';
-  adminBtn.style.display = 'inline-block';
-  logoutBtn.style.display = 'none';
-  imagePanel.style.display = 'none';
+// -------------------- ADMIN LOGIN --------------------
+const adminBtn=document.getElementById("adminBtn");
+const adminPassword=document.getElementById("adminPassword");
+const logoutBtn=document.getElementById("logoutBtn");
+const imagePanel=document.getElementById("imagePanel");
+const adminStatus=document.getElementById("adminStatus");
+const mainPanel=document.getElementById("mainPanel");
+
+let adminLoggedIn=localStorage.getItem("adminLoggedIn")==="true";
+
+function updateAdminUI(){
+  adminStatus.style.display=adminLoggedIn?"inline-block":"none";
+  logoutBtn.style.display=adminLoggedIn?"inline-block":"none";
+  adminBtn.style.display=adminLoggedIn?"none":"inline-block";
+  imagePanel.style.display=adminLoggedIn?"block":"none";
+
+  // ONLY announcements + tab buttons visible to visitors
+  mainPanel.querySelectorAll("textarea, #addAnnouncementBtn, #editAnnouncementBtn, #updateAnnouncementBtn, #deleteAnnouncementBtn, #marketExcelInput, #importMarketBtn, #clearMarketBtn, #uploadMarketScreensBtn, #clearMarketScreensBtn").forEach(el=>{
+    if(adminLoggedIn) el.style.display="";
+    else if(el.id==="addAnnouncementBtn" || el.id==="editAnnouncementBtn" || el.id==="updateAnnouncementBtn" || el.id==="deleteAnnouncementBtn") el.style.display="none";
+    else el.style.display="none";
+  });
+
+  adminPassword.style.display="none";
+  adminPassword.value="";
+}
+
+// -------------------- TAB SWITCH (VISITOR + ADMIN) --------------------
+const tabMarket=document.getElementById("tabMarket");
+const tabScreenshot=document.getElementById("tabScreenshot");
+const marketTab=document.getElementById("marketTab");
+const screenshotTab=document.getElementById("screenshotTab");
+
+tabMarket.addEventListener("click",()=>{
+  marketTab.style.display="block";
+  screenshotTab.style.display="none";
 });
 
-// ------------------ MARKET & SCREENSHOT TABLES ------------------
-const nextMarketBtn = document.getElementById('nextMarketBtn');
-const screenshotBtn = document.getElementById('screenshotBtn');
-const marketTableContainer = document.getElementById('marketTableContainer');
-const screenshotTableContainer = document.getElementById('screenshotTableContainer');
-
-nextMarketBtn.addEventListener('click', () => {
-  marketTableContainer.style.display = 'block';
-  screenshotTableContainer.style.display = 'none';
+tabScreenshot.addEventListener("click",()=>{
+  marketTab.style.display="none";
+  screenshotTab.style.display="block";
 });
 
-screenshotBtn.addEventListener('click', () => {
-  screenshotTableContainer.style.display = 'block';
-  marketTableContainer.style.display = 'none';
+// -------------------- ANNOUNCEMENTS --------------------
+let announcementText=localStorage.getItem("announcementText")||"";
+const announcementDisplay=document.getElementById("announcementDisplay");
+const announcementInput=document.getElementById("announcementInput");
+
+function renderAnnouncement(){
+  announcementDisplay.textContent=announcementText;
+  announcementInput.value=announcementText;
+}
+renderAnnouncement();
+
+document.getElementById("addAnnouncementBtn").addEventListener("click",()=>{
+  announcementText=announcementInput.value.trim();
+  localStorage.setItem("announcementText",announcementText);
+  renderAnnouncement();
 });
 
-// ------------------ EXAMPLE ANNOUNCEMENT ------------------
-document.getElementById('announcement').innerHTML = `
-  <p>Welcome to ZyG Discord VC Attendance!</p>
-  <p>Check Next Market or Uploaded Screenshots below.</p>
-`;
+document.getElementById("editAnnouncementBtn").addEventListener("click",()=>{ announcementInput.value=announcementText; });
+document.getElementById("updateAnnouncementBtn").addEventListener("click",()=>{
+  announcementText=announcementInput.value.trim();
+  localStorage.setItem("announcementText",announcementText);
+  renderAnnouncement();
+});
+document.getElementById("deleteAnnouncementBtn").addEventListener("click",()=>{
+  announcementText="";
+  localStorage.removeItem("announcementText");
+  renderAnnouncement();
+});
 
-// ------------------ FILL EXAMPLE TABLE DATA ------------------
-const marketTable = document.getElementById('marketTable').querySelector('tbody');
-marketTable.innerHTML = `
-<tr><td>2025-11-15</td><td>Item A</td><td>$100</td></tr>
-<tr><td>2025-11-16</td><td>Item B</td><td>$150</td></tr>
-<tr><td>2025-11-17</td><td>Item C</td><td>$200</td></tr>
-`;
+// -------------------- SCREENSHOT DISPLAY --------------------
+const screenshotInput=document.getElementById("marketScreensInput");
+const screenshotGallery=document.getElementById("screenshotGallery");
+let screenshots=JSON.parse(localStorage.getItem("screenshots")||"[]");
+
+function renderScreenshots(){
+  screenshotGallery.innerHTML="";
+  screenshots.forEach(img=>{
+    const imgEl=document.createElement("img");
+    imgEl.src=img;
+    imgEl.style.width="80px";
+    imgEl.style.height="80px";
+    imgEl.style.objectFit="cover";
+    imgEl.style.cursor="pointer";
+    imgEl.title="Click to view full image";
+    imgEl.addEventListener("click",()=>window.open(img,"_blank"));
+    screenshotGallery.appendChild(imgEl);
+  });
+}
+renderScreenshots();
+
+document.getElementById("uploadMarketScreensBtn").addEventListener("click",()=>{
+  const files=Array.from(screenshotInput.files);
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      screenshots.push(e.target.result);
+      localStorage.setItem("screenshots",JSON.stringify(screenshots));
+      renderScreenshots();
+    };
+    reader.readAsDataURL(file);
+  });
+  screenshotInput.value="";
+});
+
+document.getElementById("clearMarketScreensBtn").addEventListener("click",()=>{
+  screenshots=[];
+  localStorage.removeItem("screenshots");
+  renderScreenshots();
+});
+
+// -------------------- INITIALIZE --------------------
+updateAdminUI();
+
+// Admin login events
+adminBtn.addEventListener("click",()=>{ adminPassword.style.display="inline-block"; adminPassword.focus(); });
+adminPassword.addEventListener("keyup",e=>{
+  if(e.key==="Enter"){
+    if(adminPassword.value==="0212"){
+      adminLoggedIn=true;
+      localStorage.setItem("adminLoggedIn","true");
+      updateAdminUI();
+      alert("✅ Admin logged in!");
+    } else { alert("❌ Incorrect password"); adminPassword.value=""; }
+  }
+});
+logoutBtn.addEventListener("click",()=>{
+  adminLoggedIn=false;
+  localStorage.setItem("adminLoggedIn","false");
+  updateAdminUI();
+  alert("✅ Logged out successfully!");
+});
 </script>
-
 </body>
 </html>
