@@ -66,45 +66,39 @@ button:hover { background:#2ea043; }
 
 <div class="container">
   <!-- MAIN PANEL -->
-<!-- MAIN PANEL -->
-<div class="panel" id="mainPanel">
-  <h2>📢 Announcements</h2>
-  <div id="announcementDisplay"></div>
-
-  <!-- Admin-only controls -->
-  <div id="announcementControls" style="display:none;">
+  <div class="panel" id="mainPanel">
+    <h2>📢 Announcements</h2>
+    <div id="announcementDisplay"></div>
     <textarea id="announcementInput" placeholder="Enter announcement..."></textarea>
     <button id="addAnnouncementBtn">Add</button>
     <button id="editAnnouncementBtn">Edit</button>
     <button id="updateAnnouncementBtn">Update</button>
     <button id="deleteAnnouncementBtn">Delete</button>
+
+    <div id="mainTabs" style="display:none;">
+      <div style="display:flex; gap:0; margin-top:20px;">
+        <button id="tabMarket" class="tab-active">Next Market</button>
+        <button id="tabScreenshot">Screenshot</button>
+      </div>
+
+      <div id="marketTab" style="margin-top:10px;">
+        <input type="file" id="marketExcelInput" accept=".xlsx,.xls">
+        <button id="importMarketBtn">Import Excel</button>
+        <button id="clearMarketBtn">Clear Table</button>
+        <table id="marketTable">
+          <thead><tr><th>Date</th><th>Item</th><th>Price</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="screenshotTab" style="display:none; margin-top:10px;">
+        <input type="file" id="marketScreensInput" multiple accept="image/*">
+        <button id="uploadMarketScreensBtn">Upload Screenshot</button>
+        <button id="clearMarketScreensBtn">Clear Screenshots</button>
+        <div id="screenshotGallery" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;"></div>
+      </div>
+    </div>
   </div>
-
-  <div id="mainTabs">
-    <div style="display:flex; gap:0; margin-top:20px;">
-      <button id="tabMarket" class="tab-active">Next Market</button>
-      <button id="tabScreenshot">Screenshot</button>
-    </div>
-
-    <div id="marketTab" style="margin-top:10px;">
-      <input type="file" id="marketExcelInput" accept=".xlsx,.xls">
-      <button id="importMarketBtn">Import Excel</button>
-      <button id="clearMarketBtn">Clear Table</button>
-      <table id="marketTable">
-        <thead><tr><th>Date</th><th>Item</th><th>Price</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div id="screenshotTab" style="display:none; margin-top:10px;">
-      <input type="file" id="marketScreensInput" multiple accept="image/*">
-      <button id="uploadMarketScreensBtn">Upload Screenshot</button>
-      <button id="clearMarketScreensBtn">Clear Screenshots</button>
-      <div id="screenshotGallery" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;"></div>
-    </div>
-  </div>
-</div>
-
 
   <!-- RIGHT COLUMN (unchanged) -->
   <div class="rightColumn">
@@ -173,85 +167,24 @@ socket.on("update",d=>{attendance=d;updateActive();updateHistory();});
 const adminBtn=document.getElementById("adminBtn"),adminPassword=document.getElementById("adminPassword"),logoutBtn=document.getElementById("logoutBtn"),imagePanel=document.getElementById("imagePanel"),adminStatus=document.getElementById("adminStatus");
 const mainPanel=document.getElementById("mainPanel"),mainTabs=document.getElementById("mainTabs");
 let adminLoggedIn=localStorage.getItem("adminLoggedIn")==="true";
-const announcementControls = document.getElementById("announcementControls");
-
-// --- Admin login controls ---
-const adminBtn = document.getElementById("adminBtn"),
-      adminPassword = document.getElementById("adminPassword"),
-      logoutBtn = document.getElementById("logoutBtn"),
-      imagePanel = document.getElementById("imagePanel"),
-      adminStatus = document.getElementById("adminStatus");
-
-const mainTabs = document.getElementById("mainTabs");
-const announcementControls = document.getElementById("announcementControls");
-
-// Tabs admin-only buttons/inputs
-const importMarketBtn = document.getElementById("importMarketBtn"),
-      clearMarketBtn = document.getElementById("clearMarketBtn"),
-      uploadMarketScreensBtn = document.getElementById("uploadMarketScreensBtn"),
-      clearMarketScreensBtn = document.getElementById("clearMarketScreensBtn"),
-      marketExcelInput = document.getElementById("marketExcelInput"),
-      marketScreensInput = document.getElementById("marketScreensInput");
-
-let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
-
-function updateAdminUI() {
-  // Admin login/logout visibility
-  adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
-  logoutBtn.style.display = adminLoggedIn ? "inline-block" : "none";
-  adminBtn.style.display = adminLoggedIn ? "none" : "inline-block";
-  adminPassword.style.display = adminLoggedIn ? "none" : "inline-block";
-
-  // Image panel: admin only
-  imagePanel.style.display = adminLoggedIn ? "block" : "none";
-
-  // Tabs always visible
-  mainTabs.style.display = "block";
-
-  // Announcement controls: admin only
-  announcementControls.style.display = adminLoggedIn ? "block" : "none";
-
-  // Market/Screenshot tab buttons/inputs: admin only
-  importMarketBtn.style.display = adminLoggedIn ? "inline-block" : "none";
-  clearMarketBtn.style.display = adminLoggedIn ? "inline-block" : "none";
-  uploadMarketScreensBtn.style.display = adminLoggedIn ? "inline-block" : "none";
-  clearMarketScreensBtn.style.display = adminLoggedIn ? "inline-block" : "none";
-  marketExcelInput.style.display = adminLoggedIn ? "inline-block" : "none";
-  marketScreensInput.style.display = adminLoggedIn ? "inline-block" : "none";
-
-  adminPassword.value = "";
+function updateAdminUI(){
+  adminStatus.style.display=adminLoggedIn?"inline-block":"none";
+  logoutBtn.style.display=adminLoggedIn?"inline-block":"none";
+  adminBtn.style.display=adminLoggedIn?"none":"inline-block";
+  imagePanel.style.display=adminLoggedIn?"block":"none";
+  adminPassword.style.display=adminLoggedIn?"none":"inline-block";
+  mainTabs.style.display=adminLoggedIn?"block":"none";
+  adminPassword.value="";
 }
-
-// --- Event handlers ---
-adminBtn.onclick = () => {
-  adminPassword.style.display = "inline-block";
-  adminPassword.focus();
-};
-
-adminPassword.onkeyup = e => {
-  if (e.key === "Enter") {
-    if (adminPassword.value === "0212") { // your password
-      adminLoggedIn = true;
-      localStorage.setItem("adminLoggedIn", "true");
-      updateAdminUI();
-      alert("Admin logged in!");
-    } else {
-      alert("Wrong password");
-      adminPassword.value = "";
-    }
+adminBtn.onclick=()=>{adminPassword.style.display="inline-block";adminPassword.focus();};
+adminPassword.onkeyup=e=>{
+  if(e.key==="Enter"){
+    if(adminPassword.value==="0212"){adminLoggedIn=true;localStorage.setItem("adminLoggedIn","true");updateAdminUI();alert("Admin logged in!");}
+    else {alert("Wrong password");adminPassword.value="";}
   }
 };
-
-logoutBtn.onclick = () => {
-  adminLoggedIn = false;
-  localStorage.setItem("adminLoggedIn", "false");
-  updateAdminUI();
-  alert("Logged out!");
-};
-
-// Initial load
+logoutBtn.onclick=()=>{adminLoggedIn=false;localStorage.setItem("adminLoggedIn","false");updateAdminUI();alert("Logged out!");};
 updateAdminUI();
-
 
 // --- other JS (screenshots, settings, image panel, etc.) unchanged ---
 // Tabs
