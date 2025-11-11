@@ -1,4 +1,3 @@
-<!-- KEEPING ALL EXISTING JS EXACTLY THE SAME BELOW -->
 <script>
 /* ---------- ORIGINAL FUNCTIONAL SCRIPT (unchanged) ---------- */
 
