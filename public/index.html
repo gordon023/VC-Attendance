@@ -11,64 +11,82 @@
   <script src="main.js" defer></script>
 </head>
 
-<body class="bg-gray-900 text-gray-100 font-sans">
-
-  <header class="flex justify-between items-center w-full px-6 py-4 border-b border-gray-700">
-    <h1 class="text-xl font-bold">ZyG - Discord VC Attendance Live</h1>
+<body>
+  <header>
+    <h1>ZyG - Discord VC Attendance Live</h1>
     <div>
-      <span id="adminStatus" class="hidden font-bold text-green-400">Admin Logged In</span>
-      <button id="adminBtn" class="bg-blue-600 px-3 py-1 rounded">Admin Login</button>
-      <input type="password" id="adminPassword" class="hidden bg-gray-800 px-2 py-1 rounded" placeholder="Password">
-      <button id="logoutBtn" class="hidden bg-red-600 px-3 py-1 rounded">Logout</button>
+      <span id="adminStatus" class="hidden">Admin Logged In</span>
+      <button id="adminBtn">Admin Login</button>
+      <input type="password" id="adminPassword" class="hidden" placeholder="Password">
+      <button id="logoutBtn" class="hidden">Logout</button>
     </div>
   </header>
 
   <main class="container">
-    <!-- Left: Main Panel -->
+    <!-- LEFT: MAIN PANEL -->
     <section id="mainPanel" class="panel">
-      <h2 class="text-lg font-semibold mb-3">📋 Main Panel</h2>
-      <p class="mb-2">Upload Excel file or paste a link to load data.</p>
-      <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" class="bg-gray-800 p-2 rounded mb-2 w-full">
-      <input type="url" id="linkInput" placeholder="Paste a data link here..." class="bg-gray-800 p-2 rounded w-full">
+      <h2>📋 Main Panel</h2>
+
+      <!-- Announcement -->
+      <h3>Announcement</h3>
+      <div id="announcementView"></div>
+      <textarea id="announcementInput" placeholder="Write an announcement..."></textarea>
+      <button id="saveAnnouncementBtn">Save</button>
+      <button id="clearAnnouncementBtn">Clear</button>
+
+      <hr style="margin:15px 0; border-color:#30363d;">
+
+      <!-- Market Section -->
+      <h3>Market Upload / Import</h3>
+      <input type="file" id="marketExcelInput" accept=".xlsx,.xls,.csv">
+      <input type="url" id="marketLinkInput" placeholder="Paste market link...">
+      <button id="importMarketBtn">Import</button>
+      <button id="clearMarketBtn">Clear</button>
+
+      <table id="marketTable">
+        <thead><tr><th>Date</th><th>Item</th><th>Price</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <h3>Market Screenshots</h3>
+      <input type="file" id="marketScreensInput" accept="image/*" multiple>
+      <button id="uploadMarketScreensBtn">Upload</button>
+      <button id="clearMarketScreensBtn">Clear Screenshots</button>
+      <div id="marketScreensGallery" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+
+      <h3>Reference Links</h3>
+      <input type="url" id="refLinkInput" placeholder="Add reference link...">
+      <button id="addRefBtn">Add</button>
+      <div id="refsList" style="margin-top:10px;"></div>
     </section>
 
-    <!-- Right: VC + Image Panels -->
+    <!-- RIGHT: VC + IMAGE PANEL -->
     <aside class="right-column">
       <section id="activeVoicePanel" class="panel">
-        <h2 class="text-lg font-semibold mb-3">🟢 Live Voice Chat - Lordnine</h2>
-        <div id="vcAlert" class="mb-3"></div>
-        <table id="active" class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-gray-700">
-              <th>User</th><th>Channel</th><th>Status</th><th>Duration</th>
-            </tr>
-          </thead>
+        <h2>🟢 Live Voice Chat - Lordnine</h2>
+        <div id="vcAlert"></div>
+        <table id="active">
+          <thead><tr><th>User</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead>
           <tbody></tbody>
         </table>
       </section>
 
       <section id="imagePanel" class="panel hidden">
-        <h2 class="text-lg font-semibold mb-3">🖼️ Upload image/screenshot for Attendance</h2>
-        <input type="file" id="imageInput" multiple accept="image/*" class="bg-gray-800 p-2 rounded mb-2 w-full">
-        <button onclick="uploadImages()" class="bg-blue-600 px-3 py-1 rounded mb-3">Upload to Table</button>
-
-        <table id="imageTable" class="w-full text-sm mb-3">
-          <thead>
-            <tr class="border-b border-gray-700"><th>Preview</th><th>Filename</th><th>Status</th></tr>
-          </thead>
+        <h2>🖼️ Upload image/screenshot for Attendance</h2>
+        <input type="file" id="imageInput" multiple accept="image/*">
+        <button onclick="uploadImages()">Upload to Table</button>
+        <table id="imageTable">
+          <thead><tr><th>Preview</th><th>Filename</th><th>Status</th></tr></thead>
           <tbody></tbody>
         </table>
-
-        <textarea id="imageMessage" placeholder="Optional message..." class="bg-gray-800 p-2 rounded w-full mb-2"></textarea>
-        <button onclick="sendImagesToDiscord()" class="bg-green-600 px-3 py-1 rounded">Send All to Discord</button>
-        <button onclick="clearImageTable()" class="bg-red-600 px-3 py-1 rounded">Clear Table</button>
-        <button onclick="toggleHistoryPanel()" class="bg-gray-700 px-3 py-1 rounded">Show Join/Leave History</button>
-
-        <div id="notification" class="hidden text-green-400 mt-3">✅ Images successfully uploaded!</div>
-        <div id="history" class="hidden mt-3"></div>
+        <textarea id="imageMessage" placeholder="Optional message..."></textarea>
+        <button onclick="sendImagesToDiscord()">Send All to Discord</button>
+        <button onclick="clearImageTable()">Clear Table</button>
+        <button onclick="toggleHistoryPanel()">Show Join/Leave History</button>
+        <div id="notification">✅ Images successfully uploaded!</div>
+        <div id="history"></div>
       </section>
     </aside>
   </main>
-
 </body>
 </html>
