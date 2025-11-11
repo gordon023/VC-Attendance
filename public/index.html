@@ -435,6 +435,88 @@ function defaultSettings(){
 saveSettingsBtn.addEventListener("click", saveSettings);
 defaultSettingsBtn.addEventListener("click", defaultSettings);
 loadSettings();
+  // -------------------- IMAGE PANEL FUNCTIONALITY --------------------
+const imageInput = document.getElementById("imageInput");
+const uploadImagesBtn = document.getElementById("uploadImagesBtn");
+const clearImageTableBtn = document.getElementById("clearImageTableBtn");
+const sendImagesBtn = document.getElementById("sendImagesBtn");
+const toggleHistoryBtn = document.getElementById("toggleHistoryBtn");
+const imageTable = document.getElementById("imageTable").querySelector("tbody");
+const imageMessage = document.getElementById("imageMessage");
+const notification = document.getElementById("notification");
+
+let imageFiles = [];
+
+// Render image table
+function renderImageTable() {
+  imageTable.innerHTML = "";
+  imageFiles.forEach((file, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><img src="${file.data}" style="width:60px; height:60px; object-fit:cover;"></td>
+      <td>${file.name}</td>
+      <td>${file.status || "Pending"}</td>
+    `;
+    imageTable.appendChild(tr);
+  });
+}
+
+// Upload images to table
+uploadImagesBtn.addEventListener("click", () => {
+  if (!imageInput.files.length) return;
+  Array.from(imageInput.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      imageFiles.push({ name: file.name, data: e.target.result, status: "Pending" });
+      renderImageTable();
+    };
+    reader.readAsDataURL(file);
+  });
+  imageInput.value = "";
+});
+
+// Clear image table
+clearImageTableBtn.addEventListener("click", () => {
+  imageFiles = [];
+  renderImageTable();
+});
+
+// Toggle join/leave history
+toggleHistoryBtn.addEventListener("click", () => {
+  const historyDiv = document.getElementById("history");
+  historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+});
+
+// Send images to Discord webhook
+sendImagesBtn.addEventListener("click", async () => {
+  if (!imageFiles.length) return alert("❌ No images to send!");
+  if (!webhookURLInput.value) return alert("❌ Set a webhook URL first!");
+
+  for (let i = 0; i < imageFiles.length; i++) {
+    const file = imageFiles[i];
+    try {
+      const form = new FormData();
+      const blob = await (await fetch(file.data)).blob();
+      form.append("file", blob, file.name);
+      form.append("payload_json", JSON.stringify({ content: imageMessage.value || "" }));
+      const res = await fetch(webhookURLInput.value, { method: "POST", body: form });
+      if (res.ok) file.status = "Sent ✅";
+      else file.status = "Failed ❌";
+    } catch (err) {
+      console.error(err);
+      file.status = "Failed ❌";
+    }
+    renderImageTable();
+  }
+
+  notification.style.display = "block";
+  setTimeout(() => { 
+    notification.style.display = "none"; 
+    imageFiles = [];
+    renderImageTable();
+  }, 3000);
+});
+
 </script>
 </body>
 </html>
