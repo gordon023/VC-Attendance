@@ -159,66 +159,66 @@ function toggleHistoryPanel() {
 }
 
 // ================= ADMIN LOGIN =================
-// ================= ADMIN LOGIN =================
+
+// -------------------- ADMIN LOGIN --------------------
 const adminBtn = document.getElementById("adminBtn");
 const adminPassword = document.getElementById("adminPassword");
 const logoutBtn = document.getElementById("logoutBtn");
-const imagePanel = document.getElementById("imagePanel");
 const adminStatus = document.getElementById("adminStatus");
+const imagePanel = document.getElementById("imagePanel"); // optional, if you later re-add it
+
 let adminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
-// when DOM is fully ready
-document.addEventListener("DOMContentLoaded", () => {
-  updateAdminUI();
-});
+// all inputs/buttons that only admins can see
+const adminElements = [
+  // Announcement
+  document.getElementById("announcementInput"),
+  document.getElementById("saveAnnouncementBtn"),
+  document.getElementById("clearAnnouncementBtn"),
+  // Market upload
+  document.getElementById("marketExcelInput"),
+  document.getElementById("marketLinkInput"),
+  document.getElementById("importMarketBtn"),
+  document.getElementById("clearMarketBtn"),
+  // Market screenshots
+  document.getElementById("marketScreensInput"),
+  document.getElementById("uploadMarketScreensBtn"),
+  document.getElementById("clearMarketScreensBtn"),
+  // References
+  document.getElementById("refLinkInput"),
+  document.getElementById("addRefBtn")
+];
 
-function updateAdminStatus() {
-  adminStatus.style.display = adminLoggedIn ? "inline-block" : "none";
+// show/hide admin-only controls
+function toggleAdminElements(show) {
+  adminElements.forEach(el => { if (el) el.classList.toggle("hidden", !show); });
 }
 
-// Hide/show all admin-only panels
-function toggleAdminPanels(show) {
-  const ids = [
-    annInput, annSave, annClear,
-    marketExcel, marketLink, marketImport, marketClear,
-    ssInput, ssUpload, ssClear,
-    refInput, refAdd
-  ];
-  ids.forEach((el) => {
-    if (el) el.style.display = show ? "block" : "none";
-  });
-}
-
+// update label + visibility
 function updateAdminUI() {
-  if (adminLoggedIn) {
-    imagePanel.style.display = "block";
-    logoutBtn.style.display = "inline-block";
-    adminBtn.style.display = "none";
-    adminPassword.style.display = "none";
-    toggleAdminPanels(true);
-  } else {
-    imagePanel.style.display = "none";
-    logoutBtn.style.display = "none";
-    adminBtn.style.display = "inline-block";
-    adminPassword.style.display = "none";
-    toggleAdminPanels(false);
-  }
-  updateAdminStatus();
+  adminStatus.classList.toggle("hidden", !adminLoggedIn);
+  adminBtn.classList.toggle("hidden", adminLoggedIn);
+  logoutBtn.classList.toggle("hidden", !adminLoggedIn);
+  toggleAdminElements(adminLoggedIn);
 }
+
+// initial UI state
+updateAdminUI();
 
 // show password input
 adminBtn.addEventListener("click", () => {
-  adminPassword.style.display = "inline-block";
+  adminPassword.classList.remove("hidden");
   adminPassword.focus();
 });
 
-// when pressing enter in password
+// check password on Enter
 adminPassword.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
-    if (adminPassword.value === "0212") {
+    if (adminPassword.value.trim() === "0212") {
       adminLoggedIn = true;
       localStorage.setItem("adminLoggedIn", "true");
       adminPassword.value = "";
+      adminPassword.classList.add("hidden");
       updateAdminUI();
     } else {
       alert("❌ Incorrect password");
@@ -226,12 +226,13 @@ adminPassword.addEventListener("keyup", (e) => {
   }
 });
 
-// logout button
+// logout
 logoutBtn.addEventListener("click", () => {
   adminLoggedIn = false;
   localStorage.setItem("adminLoggedIn", "false");
   updateAdminUI();
 });
+
 
 
 // ================= MAIN PANEL (Announcement / Market / References) =================
